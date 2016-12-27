@@ -84,7 +84,7 @@ object WebDoubleCheckDuplicated extends App {
     val tmpIndex = new NGIndex(tmpIndexPath, tmpIndexPath, true)
 
     // Self check
-    check(tmpIndex, ngSchema, pipeFile, pipeFileEncoding, outDupFile1,
+    localCheck(tmpIndex, ngSchema, pipeFile, pipeFileEncoding, outDupFile1,
                                                              outDupFileEncoding)
     // Check using DeDup service
     remoteCheck(deDupBaseUrl, indexName, schemaName, pipeFile, pipeFileEncoding,
@@ -106,12 +106,13 @@ object WebDoubleCheckDuplicated extends App {
     * @param outDupFile output piped file with the similar documents
     * @param outDupFileEncoding output piped file character encoding
     */
-  private def check(ngIndex: NGIndex,
-                    ngSchema: NGSchema,
-                    pipeFile: String,
-                    pipeFileEncoding: String,
-                    outDupFile: String,
-                    outDupFileEncoding: String): Unit = {
+  private def localCheck(ngIndex: NGIndex,
+                         ngSchema: NGSchema,
+                         pipeFile: String,
+                         pipeFileEncoding: String,
+                         outDupFile: String,
+                         outDupFileEncoding: String): Unit = {
+    println("\nSelf check")
     NGrams.search(ngIndex, ngSchema, pipeFile, pipeFileEncoding,
                   outDupFile, outDupFileEncoding)
   }
@@ -135,21 +136,26 @@ object WebDoubleCheckDuplicated extends App {
                           pipeFileEncoding: String,
                           outDupFile: String,
                           outDupFileEncoding: String): Unit = {
+    println("\nRemote check")
     val quantity = 250 // Number of documents sent to each call of DeDup service
     val src = Source.fromFile(pipeFile, pipeFileEncoding)
     val dest = Files.newBufferedWriter(Paths.get(outDupFile),
                                        Charset.forName(outDupFileEncoding))
+    var cur = 0
 
     new LineBatchIterator(src.getLines(), quantity).foreach {
       batch =>
-        rcheck(deDupBaseUrl, indexName, schemaName, batch) match {
-          case Some(response) => response.split("\\n").zipWithIndex.foreach {
-            case (line,idx) =>
-              if (idx == 0) dest.write("\n")
+        println(s"<<< $cur")
+        rcheck(deDupBaseUrl, indexName, schemaName, batch).split("\\n").
+                                                                       foreach {
+          line =>
+            val linet = line.trim
+            if (!linet.isEmpty) {
+              if (cur != 0) dest.write("\n")
               dest.write(line)
-          }
-          case None => new IOException(batch)
+            }
         }
+        cur += quantity
     }
     src.close()
     dest.close()
@@ -157,29 +163,34 @@ object WebDoubleCheckDuplicated extends App {
 
   /** Checks some documents via DeDup webservice to look for similar docs.
     *
+    * @param baseUrl DeDup service url. For example: http://dedup.bireme.org/services or http://ts10vm.bireme.br:8180/services
     * @param indexName DeDup index name used to look for duplicates. See http://dedup.bireme.org/services/indexes
     * @param schemaName DeDup data schema name. See http://dedup.bireme.org/services/schemas
     * @param lines string having documents separated by new line character
-    * @return an option with a json string having the duplicated documents
+    * @return a json string having the duplicated documents
     */
   private def rcheck(baseUrl: String,
                      indexName: String,
                      schemaName: String,
-                     lines: String): Option[String]= {
+                     lines: String): String = {
     val baseUrlTrim = baseUrl.trim
     val burl = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
     val httpClient = HttpClientBuilder.create().build()
-    val post = new HttpPost(burl + "indexName/schemaName")
+    val post = new HttpPost(burl + "raw/duplicates/" + indexName + "/" + schemaName)
     val postingString = new StringEntity(lines)
 
     post.setEntity(postingString)
     post.setHeader("Content-type", "text/plain;charset=utf-8")
-
     val response = httpClient.execute(post)
+    val statusCode = response.getStatusLine.getStatusCode
+    val ret = if (statusCode == 200) {
+      val content = EntityUtils.toString(response.getEntity())
+      if (content.startsWith("ERROR:")) throw new IOException(content)
+      content
+    } else throw new IOException(s"status code:$statusCode")
 
-    if (response.getStatusLine.getStatusCode == 200)
-      Some(EntityUtils.toString(response.getEntity()))
-    else None
+    httpClient.close()
+    ret
   }
 
   /** Creates a temporary DeDup index.
@@ -197,6 +208,7 @@ object WebDoubleCheckDuplicated extends App {
     val indexPath = s"/tmp/DCDup_$time"
     val ngIndex = new NGIndex(indexPath, indexPath, false)
 
+    println("Creating temporary index")
     NGrams.index(ngIndex, ngSchema, pipeFile, pipeFileEncoding)
     indexPath
   }
@@ -271,7 +283,7 @@ object WebDoubleCheckDuplicated extends App {
   /** Given a NGrams output line (piped), retrives the two similar doc ids.
     *
     * @param line ids piped line
-    * @return an option 
+    * @return an option
     */
   private def getSimIdsFromLine(line: String): Option[(String,String)] = {
     val linet = line.trim()
