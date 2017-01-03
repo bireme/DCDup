@@ -146,13 +146,12 @@ object WebDoubleCheckDuplicated extends App {
     new LineBatchIterator(src.getLines(), quantity).foreach {
       batch =>
         println(s"<<< $cur")
-        rcheck(deDupBaseUrl, indexName, schemaName, batch).split("\\n").
-                                                                       foreach {
+        rcheck(deDupBaseUrl, indexName, schemaName, batch).split("\n").foreach {
           line =>
             val linet = line.trim
             if (!linet.isEmpty) {
               if (cur != 0) dest.write("\n")
-              dest.write(line)
+              dest.write(linet)
             }
         }
         cur += quantity
@@ -230,7 +229,7 @@ object WebDoubleCheckDuplicated extends App {
                                outNoDupFile: String,
                                outDupFileEncoding: String): Unit = {
     val auxIds = getIds(outDupFile1, outDupFileEncoding)
-    val ids = auxIds ++ getIds(outDupFile2, outDupFileEncoding, onlyFirstId= true)
+    val ids = auxIds ++ getIds(outDupFile2, outDupFileEncoding, 2, onlyFirstId= true)
     val in = Source.fromFile(pipeFile, pipeFileEncoding)
     val out = Files.newBufferedWriter(Paths.get(outNoDupFile),
                                       Charset.forName(pipeFileEncoding))
@@ -255,18 +254,20 @@ object WebDoubleCheckDuplicated extends App {
     * the lower one from the duple (if onlyFirstId is true)
     * @param outDupFile duplicated doc piped file
     * @param outDupFileEncoding duplicated doc piped file encoding
+    * @param dropLines number of drop lines to remove the header
     * @param onlyFirstId if true returns only the first id from both of duplicated
     *                   docs otherwise it retuns both ids
     * @return a set of duplicated doc ids
     */
   private def getIds(outDupFile: String,
                      outDupFileEncoding: String,
+                     dropLines: Int = 0,
                      onlyFirstId: Boolean = false): Set[String] = {
     val reader = Source.fromFile(outDupFile, outDupFileEncoding)
     val in = reader.getLines()
 
-    // Skip two first header licenses
-    in.drop(2)
+    // Skip header licenses lines
+    in.drop(dropLines)
 
     val outSet = in.foldLeft[Set[String]](Set()) {
       case (set, line) => getSimIdsFromLine(line) match {

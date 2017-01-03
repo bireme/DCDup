@@ -12,6 +12,7 @@ lazy val root = (project in file(".")).
 
 val luceneVersion = "6.3.0"
 //val luceneVersion = "6.2.1"
+//val luceneVersion = "6.1.0"
 val jacksonVersion = "2.7.8"
 //val json4sVersion = "3.5.0"
 val httpClientVersion = "4.5.2"
