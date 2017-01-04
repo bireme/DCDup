@@ -19,7 +19,7 @@
 
 =========================================================================*/
 
-package org.bireme.dsdup
+package org.bireme.dcdup
 
 import br.bireme.ngrams.NGSchema
 

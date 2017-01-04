@@ -19,7 +19,7 @@
 
 =========================================================================*/
 
-package org.bireme.dsdup
+package org.bireme.dcdup
 
 import br.bireme.ngrams.{NGrams,NGIndex,NGSchema}
 
@@ -31,8 +31,8 @@ object Pipe2Lucene extends App {
       "\n\t<indexPath> - NGram's Lucene index path" +
       "\n\t<schemaFile> - NGram scheama file" +
       "\n\t<schemaEncoding> - NGram scheama file encoding" +
-      "\n\t<pipeFile> - output pipe file" +
-      "\n\t[-encoding=<pipeEncoding>] - output pipe file encoding. Default is utf-8)" +
+      "\n\t<pipeFile> - pipe file" +
+      "\n\t[-encoding=<pipeEncoding>] - pipe file encoding. Default is utf-8)" +
       "\n\t[--override]"
     )
     System.exit(1)
