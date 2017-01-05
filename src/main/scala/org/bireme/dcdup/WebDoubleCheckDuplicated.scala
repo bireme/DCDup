@@ -30,7 +30,7 @@ import java.util.Calendar
 
 import org.apache.http.{HttpEntity,HttpResponse}
 import org.apache.http.impl.client.HttpClientBuilder
-import org.apache.http.client.methods.HttpPost
+import org.apache.http.client.methods.{HttpGet,HttpPost}
 import org.apache.http.entity.StringEntity
 import org.apache.http.util.EntityUtils
 
@@ -48,8 +48,6 @@ object WebDoubleCheckDuplicated extends App {
     System.err.println("usage: WebDoubleCheckDuplicated " +
       "\n\t<pipeFile> - DeDup piped input file" +
       "\n\t<pipeFileEncoding> - pipe file character encoding" +
-      "\n\t<schemaFile> - local schema file name" +
-      "\n\t<schemaFileEncoding> - DeDup schema file character encoding" +
       "\n\t<DeDupBaseUrl> - DeDup url service" +
       "\n\t<indexName> - DeDup index name" +
       "\n\t<schemaName> - DeDup schema name" +
@@ -61,16 +59,14 @@ object WebDoubleCheckDuplicated extends App {
     System.exit(1)
   }
 
-  if (args.length < 10) usage()
-  val outEncoding = if (args.length > 10) args(10) else "utf-8"
+  if (args.length < 8) usage()
+  val outEncoding = if (args.length > 8) args(8) else "utf-8"
 
   doubleCheck(args(0), args(1), args(2), args(3), args(4), args(5),
-              args(6), args(7), args(8), args(9), outEncoding)
+              args(6), args(7), outEncoding)
 
   def doubleCheck(pipeFile: String,
                   pipeFileEncoding: String,
-                  schemaFile: String,       // local file
-                  schemaFileEncoding: String,
                   deDupBaseUrl: String,     // http://ts10vm.bireme.br:8180/DeDup/services/ or http://dedup.bireme.org/services
                   indexName: String,
                   schemaName: String,       // used in DeDup service
@@ -79,7 +75,9 @@ object WebDoubleCheckDuplicated extends App {
                   outNoDupFile: String,
                   outDupFileEncoding: String): Unit = {
     val time = Calendar.getInstance().getTimeInMillis().toString
-    val ngSchema = new NGSchema(schemaFile, schemaFile, schemaFileEncoding)
+    val schemaStr = loadSchema(deDupBaseUrl, schemaName)
+println(s"[$schemaStr]")
+    val ngSchema = new NGSchema(schemaName, schemaStr)
     val tmpIndexPath = createTmpIndex(pipeFile, pipeFileEncoding, ngSchema, time)
     val tmpIndex = new NGIndex(tmpIndexPath, tmpIndexPath, true)
 
@@ -320,5 +318,25 @@ object WebDoubleCheckDuplicated extends App {
     val contents = file.listFiles()
     if (contents != null) contents.foreach(deleteFile(_))
     file.delete()
+  }
+
+  private def loadSchema(baseUrl: String,
+                         schemaName: String): String = {
+    val baseUrlTrim = baseUrl.trim
+    val burl = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
+    val httpClient = HttpClientBuilder.create().build()
+    val get = new HttpGet(burl + "schema/xml/" +  schemaName)
+
+    get.setHeader("Content-type", "text/plain;charset=utf-8")
+    val response = httpClient.execute(get)
+    val statusCode = response.getStatusLine.getStatusCode
+    val ret = if (statusCode == 200) {
+      val content = EntityUtils.toString(response.getEntity())
+      if (content.startsWith("ERROR:")) throw new IOException(content)
+      content
+    } else throw new IOException(s"statusCode=$statusCode")
+
+    httpClient.close()
+    ret
   }
 }
