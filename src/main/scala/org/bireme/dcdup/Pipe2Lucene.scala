@@ -29,8 +29,8 @@ object Pipe2Lucene extends App {
   private def usage(): Unit = {
     System.err.println("usage: Pipe2Lucene" +
       "\n\t<indexPath> - NGram's Lucene index path" +
-      "\n\t<schemaFile> - NGram scheama file" +
-      "\n\t<schemaEncoding> - NGram scheama file encoding" +
+      "\n\t<schemaFile> - NGram schema file" +
+      "\n\t<schemaEncoding> - NGram schema file encoding" +
       "\n\t<pipeFile> - pipe file" +
       "\n\t[-encoding=<pipeEncoding>] - pipe file encoding. Default is utf-8)" +
       "\n\t[--override]"
