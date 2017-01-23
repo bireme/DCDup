@@ -54,7 +54,7 @@ object WebDoubleCheckDuplicated extends App {
       "\n\t<outDupFile1> - duplicated records found in pipe file" +
       "\n\t<outDupFile2> - duplicated records found between pipe file and Dedup index" +
       "\n\t<outNoDupFile> - no duplicated records between (pipe file and itself) " +
-      "and (pipe file and Dedup index)" +
+      "and (pipe file and DeDup index)" +
       "\n\t[<outDupEncoding>] - output file character encoding. Default is utf-8")
     System.exit(1)
   }
@@ -76,7 +76,7 @@ object WebDoubleCheckDuplicated extends App {
                   outDupFileEncoding: String): Unit = {
     val time = Calendar.getInstance().getTimeInMillis().toString
     val schemaStr = loadSchema(deDupBaseUrl, schemaName)
-println(s"[$schemaStr]")
+//println(s"[$schemaStr]")
     val ngSchema = new NGSchema(schemaName, schemaStr)
     val tmpIndexPath = createTmpIndex(pipeFile, pipeFileEncoding, ngSchema, time)
     val tmpIndex = new NGIndex(tmpIndexPath, tmpIndexPath, true)

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ ! "$#" -lt "8" ]
+if [ "$#" -lt "8" ]
   then
     echo 'WebDoubleCheckDuplicated shell takes a list of documents (defined by an schema'
     echo 'file) from a piped file and check then against to a DeDup index looking for'
