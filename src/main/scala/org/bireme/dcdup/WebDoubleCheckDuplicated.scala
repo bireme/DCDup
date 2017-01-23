@@ -320,6 +320,14 @@ println(s"[$schemaStr]")
     file.delete()
   }
 
+  /**
+    * Loads a schema file from the DeDup server
+    *
+    * @param deDupBaseUrl url to DeDup webservice, usually http://dedup.bireme.org/services
+    * @param indexName DeDup index name used to look for duplicates. See http://dedup.bireme.org/services/indexes
+    * @param schemaName DeDup data schema name. See http://dedup.bireme.org/services/schemas
+    * @return the schema as a String
+    */
   private def loadSchema(baseUrl: String,
                          schemaName: String): String = {
     val baseUrlTrim = baseUrl.trim
