@@ -71,6 +71,7 @@ object Pipe2Lucene extends App {
         NGrams.indexDocument(index, writer, schema, line)
     }
 
+    writer.flush()
     writer.forceMerge(1) // optimize index
     writer.close()
     reader.close()
