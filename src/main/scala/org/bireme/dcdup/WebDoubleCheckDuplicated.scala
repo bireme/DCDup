@@ -35,6 +35,7 @@ import org.apache.http.entity.StringEntity
 import org.apache.http.util.EntityUtils
 
 import scala.io.Source
+import scala.collection.JavaConverters._
 
 /** Checks a DeDup input piped file against itself to look for duplicated
   * documents and then against a Dedup index via DeDup webservice
@@ -74,15 +75,12 @@ object WebDoubleCheckDuplicated extends App {
                   outDupFile2: String,
                   outNoDupFile: String,
                   outDupFileEncoding: String): Unit = {
-    val time = Calendar.getInstance().getTimeInMillis().toString
     val schemaStr = loadSchema(deDupBaseUrl, schemaName)
 //println(s"[$schemaStr]")
     val ngSchema = new NGSchema(schemaName, schemaStr)
-    val tmpIndexPath = createTmpIndex(pipeFile, pipeFileEncoding, ngSchema, time)
-    val tmpIndex = new NGIndex(tmpIndexPath, tmpIndexPath, true)
 
     // Self check
-    localCheck(tmpIndex, ngSchema, pipeFile, pipeFileEncoding, outDupFile1,
+    localCheck(ngSchema, pipeFile, pipeFileEncoding, outDupFile1,
                                                              outDupFileEncoding)
     // Check using DeDup service
     remoteCheck(deDupBaseUrl, indexName, schemaName, pipeFile, pipeFileEncoding,
@@ -90,29 +88,54 @@ object WebDoubleCheckDuplicated extends App {
     // Take duplicate no duplicated documents
     takeNoDuplicated(pipeFile, pipeFileEncoding, outDupFile1, outDupFile2,
                      outNoDupFile, outDupFileEncoding)
-    // Delete temporary files
-    deleteFile(new File(tmpIndexPath))
   }
 
   /** Given an input piped file and a NGrams index, looks for documents that
     * are in the input file that are similar to the ones stored in the index.
     *
-    * @param ngIndex NGrams index path
     * @param ngSchema NGrams index/search configuration file
     * @param pipeFile input piped file used to look for similar docs
     * @param pipeFileEncoding input piped file character encoding
     * @param outDupFile output piped file with the similar documents
     * @param outDupFileEncoding output piped file character encoding
     */
-  private def localCheck(ngIndex: NGIndex,
-                         ngSchema: NGSchema,
+  private def localCheck(ngSchema: NGSchema,
                          pipeFile: String,
                          pipeFileEncoding: String,
                          outDupFile: String,
                          outDupFileEncoding: String): Unit = {
     println("\nSelf check")
-    NGrams.search(ngIndex, ngSchema, pipeFile, pipeFileEncoding,
-                  outDupFile, outDupFileEncoding)
+    val time = Calendar.getInstance().getTimeInMillis().toString
+    val tmpIndexPath = "/tmp/" + "DCDup_" + time
+    val tmpIndex = new NGIndex("tmpIndex", tmpIndexPath, false)
+    val maxParameters = ngSchema.getNamesPos().size();
+    val indexWriter = tmpIndex.getIndexWriter(false)
+    val src = Source.fromFile(pipeFile, pipeFileEncoding)
+    val dest = Files.newBufferedWriter(Paths.get(outDupFile),
+                                       Charset.forName(outDupFileEncoding))
+    var cur = 0
+    indexWriter.commit()
+
+    src.getLines().foreach(line =>
+      if (!line.trim().isEmpty) {
+        //println("line=" + line + "\n")
+        NGrams.search(tmpIndex, ngSchema, line, false).asScala.foreach {
+          case line2 =>
+            if (cur > 0) dest.write("\n")
+            dest.write(line2)
+        }
+        NGrams.indexDocument(tmpIndex, indexWriter, ngSchema, line)
+        indexWriter.commit()
+        if (cur % 1000 == 0) println(s"<<< $cur")
+        cur += 1
+      }
+    )
+    indexWriter.close()
+    src.close()
+    dest.close()
+
+    // Delete temporary files
+    deleteFile(new File(tmpIndexPath))
   }
 
   /** Given an input piped file and a NGrams index, looks for documents that
@@ -144,14 +167,8 @@ object WebDoubleCheckDuplicated extends App {
     new LineBatchIterator(src.getLines(), quantity).foreach {
       batch =>
         println(s"<<< $cur")
-        rcheck(deDupBaseUrl, indexName, schemaName, batch).split("\n").foreach {
-          line =>
-            val linet = line.trim
-            if (!linet.isEmpty) {
-              if (cur != 0) dest.write("\n")
-              dest.write(linet)
-            }
-        }
+        if (cur != 0) dest.write("\n")
+        dest.write(rcheck(deDupBaseUrl, indexName, schemaName, batch))
         cur += quantity
     }
     src.close()
@@ -174,19 +191,20 @@ object WebDoubleCheckDuplicated extends App {
     val burl = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
     val httpClient = HttpClientBuilder.create().build()
     val post = new HttpPost(burl + "raw/duplicates/" + indexName + "/" + schemaName)
-    val postingString = new StringEntity(lines)
+    val postingString = new StringEntity(lines, "UTF-8")
 
     post.setEntity(postingString)
     post.setHeader("Content-type", "text/plain;charset=utf-8")
     val response = httpClient.execute(post)
     val statusCode = response.getStatusLine.getStatusCode
     val ret = if (statusCode == 200) {
-      val content = EntityUtils.toString(response.getEntity())
+      val content = EntityUtils.toString(response.getEntity(), "utf-8")
       if (content.startsWith("ERROR:")) throw new IOException(content)
       content
     } else throw new IOException(s"status code:$statusCode")
 
     httpClient.close()
+//println(s"ret=[$ret]")
     ret
   }
 
@@ -332,8 +350,9 @@ object WebDoubleCheckDuplicated extends App {
                          schemaName: String): String = {
     val baseUrlTrim = baseUrl.trim
     val burl = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
+    val schemaUrl = burl + "schema/xml/" +  schemaName
     val httpClient = HttpClientBuilder.create().build()
-    val get = new HttpGet(burl + "schema/xml/" +  schemaName)
+    val get = new HttpGet(schemaUrl)
 
     get.setHeader("Content-type", "text/plain;charset=utf-8")
     val response = httpClient.execute(get)
@@ -342,7 +361,7 @@ object WebDoubleCheckDuplicated extends App {
       val content = EntityUtils.toString(response.getEntity())
       if (content.startsWith("ERROR:")) throw new IOException(content)
       content
-    } else throw new IOException(s"statusCode=$statusCode")
+    } else throw new IOException(s"url=$schemaUrl statusCode=$statusCode")
 
     httpClient.close()
     ret

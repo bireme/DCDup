@@ -10,7 +10,8 @@ lazy val root = (project in file(".")).
     name := "DCDup"
   )
 
-val luceneVersion = "6.3.0"
+val luceneVersion = "6.4.2"
+//val luceneVersion = "6.3.0"
 //val luceneVersion = "6.2.1"
 //val luceneVersion = "6.1.0"
 val jacksonVersion = "2.7.8"
