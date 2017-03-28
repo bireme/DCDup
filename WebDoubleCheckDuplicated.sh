@@ -19,4 +19,6 @@ if [ "$#" -lt "8" ]
     exit 1
 fi
 
+cd /home/javaapps/sbt-projects/DCDup
 sbt "run-main org.bireme.dcdup.WebDoubleCheckDuplicated $1 $2 $3 $4 $5 $6 $7 $8 $9"
+cd -

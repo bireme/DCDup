@@ -14,4 +14,6 @@ if [ ! "$#" -eq "5" ]
     exit 1
 fi
 
+cd /home/javaapps/sbt-projects/DCDup
 sbt "run-main org.bireme.dcdup.WebPipe2Lucene $1 $2 $3 $4 $5"
+cd -

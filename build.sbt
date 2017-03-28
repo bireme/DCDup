@@ -10,13 +10,12 @@ lazy val root = (project in file(".")).
     name := "DCDup"
   )
 
-val luceneVersion = "6.4.2"
-//val luceneVersion = "6.3.0"
-//val luceneVersion = "6.2.1"
-//val luceneVersion = "6.1.0"
+val luceneVersion = "6.5.0"
 val jacksonVersion = "2.7.8"
-//val json4sVersion = "3.5.0"
 val httpClientVersion = "4.5.2"
+val scalaLikeJdbcVersion = "2.5.1"
+val mySQLVersion = "6.0.6"
+val logBackVersion = "1.2.2"
 
 libraryDependencies ++= Seq(
   "org.apache.lucene" % "lucene-analyzers-common" % luceneVersion,
@@ -27,8 +26,10 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion,
   "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
   "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
-  "org.apache.httpcomponents" % "httpclient" % httpClientVersion
-  //"org.json4s" %% "json4s-native" % json4sVersion
+  "org.apache.httpcomponents" % "httpclient" % httpClientVersion,
+  "org.scalikejdbc" %% "scalikejdbc" % scalaLikeJdbcVersion,
+  "mysql" % "mysql-connector-java" % mySQLVersion,
+  "ch.qos.logback" % "logback-classic" % logBackVersion
 )
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
