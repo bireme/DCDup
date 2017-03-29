@@ -14,7 +14,8 @@ val luceneVersion = "6.5.0"
 val jacksonVersion = "2.7.8"
 val httpClientVersion = "4.5.2"
 val scalaLikeJdbcVersion = "2.5.1"
-val mySQLVersion = "6.0.6"
+val mySQLVersion = "5.1.41"
+//val mySQLVersion = "6.0.6"
 val logBackVersion = "1.2.2"
 
 libraryDependencies ++= Seq(

@@ -24,8 +24,8 @@ package org.bireme.dcdup
 import br.bireme.ngrams.{NGrams,NGIndex,NGSchema}
 
 import java.io.{File,IOException}
-import java.nio.file.{Files,Paths,StandardOpenOption}
 import java.nio.charset.Charset
+import java.nio.file.{Files,Paths}
 import java.util.Calendar
 
 import org.apache.http.{HttpEntity,HttpResponse}

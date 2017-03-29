@@ -21,6 +21,10 @@
 
 package org.bireme.dcdup
 
+import java.io.BufferedWriter
+import java.nio.charset.Charset
+import java.nio.file.{Files,Paths}
+
 import scala.io._
 import scalikejdbc._
 
@@ -63,9 +67,6 @@ object MySQL2Pipe extends App {
 
   Class.forName("com.mysql.jdbc.Driver")
 
-  // ad-hoc session provider on the REPL
-  //implicit val session = AutoSession
-
   sql2pipe(host, user, pswd, dbnm, sqlf, pipe, sqlEncoding, pipeEncoding)
 
   def sql2pipe(host: String,
@@ -80,11 +81,26 @@ object MySQL2Pipe extends App {
     val content = reader.getLines().mkString(" ")
     reader.close()
 
+    val writer = Files.newBufferedWriter(Paths.get(pipe),
+                                         Charset.forName(pipeEncoding))
     ConnectionPool.singleton(s"jdbc:mysql://${host.trim}:3306/${dbnm.trim}",
                                                                      user, pswd)
-    DB readOnly { implicit session =>
-      SQL(content).map( x => println(x))
-    }
-    //db.close()
+    DB readOnly {
+      implicit session =>
+        SQL(content).foreach {
+          rs =>
+            if (rs.index > 1) writer.newLine()
+            if (rs.index % 100 == 0) println(s"+++ ${rs.index}")
+
+            val colCount = rs.metaData.getColumnCount()
+            (1 to colCount) foreach {
+              col => {
+                if (col > 1) writer.write("|")
+                writer.write(rs.string(col))
+              }
+            }
+        }
+    } //.close()
+    writer.close()
   }
 }
