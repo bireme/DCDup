@@ -11,12 +11,8 @@ if [ "$#" -lt "4" ]
     echo '   <pipeFile> - output pipe file'
     echo '   [<pipeEncoding>] - output pipe file encoding. Optional parameter. Default is utf-8'
     exit 1
-else
-  cd /home/javaapps/sbt-projects/DCDup
-  if [ "$#" -eq "4" ]
-    then sbt "run-main org.bireme.dcdup.Lucene2Pipe $1 $2 $3 $4"
-  else
-    sbt "run-main org.bireme.dcdup.Lucene2Pipe $1 $2 $3 $4 -encoding=$5"
-  fi
-  cd -
 fi
+
+cd /home/javaapps/sbt-projects/DCDup
+sbt "run-main org.bireme.dcdup.Lucene2Pipe $1 $2 $3 $4 $5"
+cd -

@@ -18,5 +18,5 @@ else
   else
     sbt "run-main org.bireme.dcdup.Pipe2Lucene $1 $2 $3 $4 -encoding=$5"
   fi
-  cd -
+  cd - 
 fi
