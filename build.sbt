@@ -13,10 +13,10 @@ lazy val root = (project in file(".")).
 val luceneVersion = "6.5.0"
 val jacksonVersion = "2.7.8"
 val httpClientVersion = "4.5.2"
-val scalaLikeJdbcVersion = "2.5.1"
 val mySQLVersion = "5.1.41"
 //val mySQLVersion = "6.0.6"
 val logBackVersion = "1.2.2"
+val circeParserVersion = "0.7.1"
 
 libraryDependencies ++= Seq(
   "org.apache.lucene" % "lucene-analyzers-common" % luceneVersion,
@@ -28,9 +28,9 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
   "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
   "org.apache.httpcomponents" % "httpclient" % httpClientVersion,
-  "org.scalikejdbc" %% "scalikejdbc" % scalaLikeJdbcVersion,
   "mysql" % "mysql-connector-java" % mySQLVersion,
-  "ch.qos.logback" % "logback-classic" % logBackVersion
+  "ch.qos.logback" % "logback-classic" % logBackVersion,
+  "io.circe" % "circe-parser_2.12" % circeParserVersion
 )
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")

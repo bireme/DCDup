@@ -21,12 +21,16 @@
 
 package org.bireme.dcdup
 
+import io.circe._
+import io.circe.parser._
+
 import java.io.BufferedWriter
 import java.nio.charset.Charset
 import java.nio.file.{Files,Paths}
+import java.sql.DriverManager
 
 import scala.io._
-import scalikejdbc._
+import scala.util.Try
 
 object MySQL2Pipe extends App {
   private def usage(): Unit = {
@@ -37,14 +41,18 @@ object MySQL2Pipe extends App {
       "\n\t-dbnm=<MySQL_Dbname> - MySQL database name" +
       "\n\t-sql=<sqlFile> - sql specification file" +
       "\n\t-pipe=<pipeFile> - output piped file" +
-      "\n\t[-sqlEncoding=<sqlEncoding>] - sql file encoding. Default is utf-8)" +
-      "\n\t[-pipeEncoding=<pipeEncoding>] - output piped file encoding. Default is utf-8)"
+      "\n\t[-sqlEncoding=<sqlEncoding>] - sql file encoding. Default is utf-8" +
+      "\n\t[-pipeEncoding=<pipeEncoding>] - output piped file encoding. Default is utf-8" +
+      "\n\t[-jsonField=<tag>[,<tag>,...,<tag>]] - json field to use if the row element is a json object." +
+      " It will use the first with content" +
+      "\n\t[-repetiveSep=<separator>] - repetitive field string separator. Default is //@//"
     )
     System.exit(1)
   }
 
   if (args.length < 6) usage()
 
+ // Parse parameters
   val parameters = args.foldLeft[Map[String,String]](Map()) {
     case (map,par) => {
       val split = par.split(" *= *", 2)
@@ -64,10 +72,13 @@ object MySQL2Pipe extends App {
   val pipe = parameters("pipe")
   val sqlEncoding = parameters.getOrElse("sqlEncoding", "utf-8")
   val pipeEncoding = parameters.getOrElse("pipeEncoding", "utf-8")
+  val jsonField = parameters.getOrElse("jsonField", "").trim.split(" *\\, *").toSet
+  val repetitiveSep = parameters.getOrElse("repetiveSep", "//@//")
 
   Class.forName("com.mysql.jdbc.Driver")
 
-  sql2pipe(host, user, pswd, dbnm, sqlf, pipe, sqlEncoding, pipeEncoding)
+  sql2pipe(host, user, pswd, dbnm, sqlf, pipe,
+           sqlEncoding, pipeEncoding, jsonField, repetitiveSep)
 
   def sql2pipe(host: String,
                user: String,
@@ -76,31 +87,70 @@ object MySQL2Pipe extends App {
                sqlf: String,
                pipe: String,
                sqlEncoding: String,
-               pipeEncoding: String): Unit = {
+               pipeEncoding: String,
+               jsonField: Set[String],
+               repetitiveSep: String): Unit = {
     val reader = Source.fromFile(sqlf, sqlEncoding)
     val content = reader.getLines().mkString(" ")
     reader.close()
 
     val writer = Files.newBufferedWriter(Paths.get(pipe),
                                          Charset.forName(pipeEncoding))
-    ConnectionPool.singleton(s"jdbc:mysql://${host.trim}:3306/${dbnm.trim}",
+    val con = DriverManager.getConnection(
+                                 s"jdbc:mysql://${host.trim}:3306/${dbnm.trim}",
                                                                      user, pswd)
-    DB readOnly {
-      implicit session =>
-        SQL(content).foreach {
-          rs =>
-            if (rs.index > 1) writer.newLine()
-            if (rs.index % 100 == 0) println(s"+++ ${rs.index}")
-
-            val colCount = rs.metaData.getColumnCount()
-            (1 to colCount) foreach {
-              col => {
-                if (col > 1) writer.write("|")
-                writer.write(rs.string(col))
-              }
-            }
+//println("create")
+    val stmt = con.createStatement()
+//println(s"execute: $content")
+    val rs = stmt.executeQuery(content)
+//println("metadata")
+    val cols = rs.getMetaData().getColumnCount()
+//println(s"cols=$cols")
+    while (rs.next()) {
+      (1 to cols) foreach {
+        col => {
+          val str = (Try(rs.getString(col)) getOrElse "????")
+          val str2 = if (str == null) "" else {
+            val str3 = str.trim()
+            if (str3.startsWith("[{") || str3.startsWith("{"))
+              getElement(str3, jsonField, repetitiveSep)
+            else str3
+          }
+          // build the line
+          if (col > 1) writer.write("|")
+          println(str2)
+          writer.write(str2.replace("|", " "))  // Eliminates pipe character
         }
-    } //.close()
+      }
+      println("=====================================================")
+      writer.newLine()
+    }
     writer.close()
+    con.close()
+  }
+
+  private def getElement(json: String,
+                         jsonField: Set[String],
+                         repetitiveSep: String): String = {
+    if (jsonField.isEmpty) json
+    else {
+      val doc: Json = parse(json).getOrElse(Json.Null)
+      if (doc == Json.Null) json
+      else findElement(doc, jsonField, repetitiveSep) match {
+        case Some(str) => str
+        case None => json
+      }
+    }
+  }
+
+  private def findElement(doc: Json,
+                          jsonField: Set[String],
+                          repetitiveSep: String): Option[String] = {
+    if (jsonField.isEmpty) None
+    else {
+      val elems: List[Json] = doc.findAllByKey(jsonField.head)
+      if (elems.isEmpty) findElement(doc, jsonField.tail, repetitiveSep)
+      else Some(elems.map(elem => elem.asString).flatten.mkString(repetitiveSep))
+    }
   }
 }
