@@ -1,4 +1,5 @@
-SELECT a.`id`,
+SELECT 'LILACS_Sas' AS dbase,
+       a.`id`,
        b.`title`,
        c.`title_serial`,
        a.`publication_date_normalized`,

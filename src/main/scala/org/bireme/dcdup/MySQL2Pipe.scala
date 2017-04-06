@@ -118,11 +118,11 @@ object MySQL2Pipe extends App {
           }
           // build the line
           if (col > 1) writer.write("|")
-          println(str2)
+          //println(str2)
           writer.write(str2.replace("|", " "))  // Eliminates pipe character
         }
       }
-      println("=====================================================")
+      //println("=====================================================")
       writer.newLine()
     }
     writer.close()
