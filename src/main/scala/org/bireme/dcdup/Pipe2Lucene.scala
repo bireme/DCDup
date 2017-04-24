@@ -33,7 +33,7 @@ object Pipe2Lucene extends App {
       "\n\t<schemaEncoding> - NGram schema file encoding" +
       "\n\t<pipeFile> - pipe file" +
       "\n\t[-encoding=<pipeEncoding>] - pipe file encoding. Default is utf-8" +
-      "\n\t[--override] - override the Lucene index if it exists"
+      "\n\t[--append] - append documents to an existing Lucene index"
     )
     System.exit(1)
   }
@@ -49,19 +49,19 @@ object Pipe2Lucene extends App {
   }
 
   val pipeEncoding = parameters.getOrElse("encoding", "utf-8")
-  val overrideIndex = parameters.contains("override")
+  val append = parameters.contains("append")
 
-  toLucene(args(0), args(1), args(2), args(3), pipeEncoding, overrideIndex)
+  toLucene(args(0), args(1), args(2), args(3), pipeEncoding, append)
 
   def toLucene(indexPath: String,
                schemaFile: String,
                schemaEncoding: String,
                pipeFile: String,
                pipeEncoding: String,
-               overrideIndex: Boolean): Unit = {
+               append: Boolean): Unit = {
 
     val index = new NGIndex(indexPath, indexPath, false)
-    val writer = index.getIndexWriter(!overrideIndex)
+    val writer = index.getIndexWriter(append)
     val schema = new NGSchema("schema", schemaFile, schemaEncoding)
     val reader = Source.fromFile(pipeFile, pipeEncoding)
 
