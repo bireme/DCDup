@@ -32,8 +32,8 @@ object Pipe2Lucene extends App {
       "\n\t<schemaFile> - NGram schema file" +
       "\n\t<schemaEncoding> - NGram schema file encoding" +
       "\n\t<pipeFile> - pipe file" +
-      "\n\t[-encoding=<pipeEncoding>] - pipe file encoding. Default is utf-8)" +
-      "\n\t[--override]"
+      "\n\t[-encoding=<pipeEncoding>] - pipe file encoding. Default is utf-8" +
+      "\n\t[--override] - override the Lucene index if it exists"
     )
     System.exit(1)
   }
