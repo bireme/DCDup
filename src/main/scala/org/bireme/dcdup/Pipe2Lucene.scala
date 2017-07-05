@@ -67,12 +67,14 @@ object Pipe2Lucene extends App {
 
     reader.getLines().zipWithIndex.foreach {
       case (line,idx) =>
-        if (idx % 1000 == 0) println(s"+++$idx")
+        if (idx % 10000 == 0) println(s"+++$idx")
         NGrams.indexDocument(index, writer, schema, line)
     }
 
     writer.flush()
+    print("Optimizing index ...")
     writer.forceMerge(1) // optimize index
+    println("OK")
     writer.close()
     reader.close()
   }
