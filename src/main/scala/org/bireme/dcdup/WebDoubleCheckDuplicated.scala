@@ -245,7 +245,7 @@ object WebDoubleCheckDuplicated extends App {
                                outNoDupFile: String,
                                outDupFileEncoding: String): Unit = {
     val auxIds = getIds(outDupFile1, outDupFileEncoding)
-    val ids = auxIds ++ getIds(outDupFile2, outDupFileEncoding, 2, onlyFirstId= true)
+    val ids = auxIds ++ getIds(outDupFile2, outDupFileEncoding, onlyFirstId= true)
     val in = Source.fromFile(pipeFile, pipeFileEncoding)
     val out = Files.newBufferedWriter(Paths.get(outNoDupFile),
                                       Charset.forName(pipeFileEncoding))
