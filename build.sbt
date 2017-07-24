@@ -17,6 +17,7 @@ val mySQLVersion = "5.1.42"
 //val mySQLVersion = "6.0.6"
 val logBackVersion = "1.2.3"
 val circeParserVersion = "0.8.0"
+val scalaTestVersion = "3.0.3"
 
 libraryDependencies ++= Seq(
   "org.apache.lucene" % "lucene-analyzers-common" % luceneVersion,
@@ -30,7 +31,11 @@ libraryDependencies ++= Seq(
   "org.apache.httpcomponents" % "httpclient" % httpClientVersion,
   "mysql" % "mysql-connector-java" % mySQLVersion,
   "ch.qos.logback" % "logback-classic" % logBackVersion,
-  "io.circe" % "circe-parser_2.12" % circeParserVersion
+  "io.circe" % "circe-parser_2.12" % circeParserVersion,
+  "org.scalactic" %% "scalactic" % scalaTestVersion,
+  "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
 )
+
+logBuffered in Test := false
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")

@@ -187,6 +187,7 @@ object WebDoubleCheckDuplicated extends App {
                      indexName: String,
                      schemaName: String,
                      lines: String): String = {
+//println(s"lines=[$lines]")
     val baseUrlTrim = baseUrl.trim
     val burl = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
     val httpClient = HttpClientBuilder.create().build()
