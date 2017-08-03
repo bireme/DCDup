@@ -31,6 +31,10 @@ import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.StringEntity
 import org.apache.http.util.EntityUtils
 
+/**
+  * Create a remote DeDup index from a piped file
+  *
+  */
 object WebPipe2Lucene extends App {
   private def usage(): Unit = {
     System.err.println("usage: WebPipe2Lucene " +

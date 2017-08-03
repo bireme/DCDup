@@ -31,11 +31,15 @@ import org.apache.lucene.store.FSDirectory
 
 import scala.collection.JavaConverters._
 
+/**
+  * Search for documents into a Lucene index
+  *
+  */
 object Search extends App {
   private def usage(): Unit = {
     System.err.println("usage: Search" +
       "\n\t<indexPath> - Lucene index path" +
-      "\n\t<expression> - NGram schema file" +
+      "\n\t<expression> - search expression" +
       "\n\t[-outFields=<fld1>,<fld2>,...,<fldn>] - Document fields to be shown. Default is all" +
       "\n\t[-count=<num>] - Number of documents to be shown. Default is all"
     )
@@ -77,7 +81,7 @@ object Search extends App {
     val hits = isearcher.search(query, count).scoreDocs
 
     println(s"Total hits:${hits.size}\n")
-    
+
     hits.foreach {
       hit =>
         val doc = isearcher.doc(hit.doc)

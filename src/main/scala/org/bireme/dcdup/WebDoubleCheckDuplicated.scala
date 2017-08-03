@@ -63,9 +63,43 @@ object WebDoubleCheckDuplicated extends App {
   if (args.length < 8) usage()
   val outEncoding = if (args.length > 8) args(8) else "utf-8"
 
-  doubleCheck(args(0), args(1), args(2), args(3), args(4), args(5),
-              args(6), args(7), outEncoding)
+  val dup = new WebDoubleCheckDuplicated()
+  dup.doubleCheck(args(0), args(1), args(2), args(3), args(4),
+                  args(5), args(6), args(7), outEncoding)
+}
 
+/** Checks a DeDup input piped file against itself to look for duplicated
+  * documents.
+  *
+  * author: Heitor Barbieri
+  * date: 20170803
+*/
+object LocalCheckDuplicated extends App {
+  private def usage(): Unit = {
+    System.err.println("usage: LocalCheckDuplicated " +
+      "\n\t<schemaFile> - DeDup schema file" +
+      "\n\t<schemaFileEncoding> - schema file character encoding" +
+      "\n\t<pipeFile> - DeDup piped input file" +
+      "\n\t<pipeFileEncoding> - pipe file character encoding" +
+      "\n\t<outDupFile> - duplicated records found in pipe file" +
+      "\n\t[<outDupEncoding>] - output file character encoding. Default is utf-8")
+    System.exit(1)
+  }
+
+  val outEncoding = if (args.size > 5) args(5) else "utf-8"
+
+  val dup = new WebDoubleCheckDuplicated()
+  dup.localCheck(args(0), args(1), args(2), args(3), args(4), outEncoding)
+}
+
+/** Class to check a DeDup input piped file against itself to look for duplicated
+  * documents and then against a Dedup index via DeDup webservice
+  * to also look for duplicated docs.
+  *
+  * author: Heitor Barbieri
+  * date: 20161208
+*/
+class WebDoubleCheckDuplicated {
   def doubleCheck(pipeFile: String,
                   pipeFileEncoding: String,
                   deDupBaseUrl: String,     // http://ts10vm.bireme.br:8180/DeDup/services/ or http://dedup.bireme.org/services
@@ -80,14 +114,40 @@ object WebDoubleCheckDuplicated extends App {
     val ngSchema = new NGSchema(schemaName, schemaStr)
 
     // Self check
+    println("\nSelf check")
     localCheck(ngSchema, pipeFile, pipeFileEncoding, outDupFile1,
                                                              outDupFileEncoding)
     // Check using DeDup service
+    println("\nRemote check")
     remoteCheck(deDupBaseUrl, indexName, schemaName, pipeFile, pipeFileEncoding,
                                                 outDupFile2, outDupFileEncoding)
     // Take duplicate no duplicated documents
     takeNoDuplicated(pipeFile, pipeFileEncoding, outDupFile1, outDupFile2,
                      outNoDupFile, outDupFileEncoding)
+  }
+
+  /** Given an input piped file and a NGrams index, looks for documents that
+    * are in the input file that are similar to the ones stored in the index.
+    *
+    * @param schemaFile NGrams index/search configuration file
+    * @param schemaFileEncoding Schema file encoding
+    * @param pipeFile input piped file used to look for similar docs
+    * @param pipeFileEncoding input piped file character encoding
+    * @param outDupFile output piped file with the similar documents
+    * @param outDupFileEncoding output piped file character encoding
+    */
+  def localCheck(schemaFile: String,
+                 schemaFileEncoding: String,
+                 pipeFile: String,
+                 pipeFileEncoding: String,
+                 outDupFile: String,
+                 outDupFileEncoding: String): Unit = {
+    val src = Source.fromFile(schemaFile, schemaFileEncoding)
+    val schemaStr = src.getLines().mkString("\n")
+    src.close()
+
+    val ngSchema = new NGSchema("tmpSchema", schemaStr)
+    localCheck(ngSchema, pipeFile, pipeFileEncoding, outDupFile, outDupFileEncoding)
   }
 
   /** Given an input piped file and a NGrams index, looks for documents that
@@ -99,12 +159,11 @@ object WebDoubleCheckDuplicated extends App {
     * @param outDupFile output piped file with the similar documents
     * @param outDupFileEncoding output piped file character encoding
     */
-  private def localCheck(ngSchema: NGSchema,
-                         pipeFile: String,
-                         pipeFileEncoding: String,
-                         outDupFile: String,
-                         outDupFileEncoding: String): Unit = {
-    println("\nSelf check")
+  def localCheck(ngSchema: NGSchema,
+                 pipeFile: String,
+                 pipeFileEncoding: String,
+                 outDupFile: String,
+                 outDupFileEncoding: String): Unit = {
     val time = Calendar.getInstance().getTimeInMillis().toString
     val tmpIndexPath = "/tmp/" + "DCDup_" + time
     val tmpIndex = new NGIndex("tmpIndex", tmpIndexPath, false)
@@ -150,14 +209,13 @@ object WebDoubleCheckDuplicated extends App {
     * @param outDupFile output piped file with the similar documents
     * @param outDupFileEncoding output piped file character encoding
     */
-  private def remoteCheck(deDupBaseUrl: String,
-                          indexName: String,
-                          schemaName: String,
-                          pipeFile: String,
-                          pipeFileEncoding: String,
-                          outDupFile: String,
-                          outDupFileEncoding: String): Unit = {
-    println("\nRemote check")
+  def remoteCheck(deDupBaseUrl: String,
+                  indexName: String,
+                  schemaName: String,
+                  pipeFile: String,
+                  pipeFileEncoding: String,
+                  outDupFile: String,
+                  outDupFileEncoding: String): Unit = {
     val quantity = 250 // Number of documents sent to each call of DeDup service
     val src = Source.fromFile(pipeFile, pipeFileEncoding)
     val dest = Files.newBufferedWriter(Paths.get(outDupFile),
