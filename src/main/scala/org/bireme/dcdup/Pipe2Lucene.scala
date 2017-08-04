@@ -50,9 +50,12 @@ object Pipe2Lucene extends App {
 
   val pipeEncoding = parameters.getOrElse("encoding", "utf-8")
   val append = parameters.contains("append")
+  val p2l = new Pipe2Lucene()
 
-  toLucene(args(0), args(1), args(2), args(3), pipeEncoding, append)
+  p2l.toLucene(args(0), args(1), args(2), args(3), pipeEncoding, append)
+}
 
+class Pipe2Lucene {
   def toLucene(indexPath: String,
                schemaFile: String,
                schemaEncoding: String,
