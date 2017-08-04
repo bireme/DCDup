@@ -124,6 +124,8 @@ object Duplicated2Lucene extends App {
           }
         }
     }
+
+    writer.close()
     src.close()
     tmpFile.toString()
   }
