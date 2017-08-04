@@ -90,7 +90,7 @@ object Duplicated2Lucene extends App {
           if (split.size >= 4) {
             val v1 = split(2).toInt
             val v2 = split(3).toInt
-            set1 + (if (v2 > v1) v2 else v1)
+            if (v1 < v2) set1 + v2 else set1
           } else set1
         } else set1
     }
