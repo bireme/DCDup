@@ -25,6 +25,11 @@ import br.bireme.ngrams.{NGrams,NGIndex,NGSchema}
 
 import scala.io.Source
 
+/**
+  * Creates a local Lucene index from a input piped file
+  *
+  * author: Heitor Barbieri
+  */
 object Pipe2Lucene extends App {
   private def usage(): Unit = {
     System.err.println("usage: Pipe2Lucene" +
