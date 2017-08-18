@@ -27,7 +27,7 @@ import io.circe.parser._
 import java.io.BufferedWriter
 import java.nio.charset.Charset
 import java.nio.file.{Files,Paths}
-import java.sql.{DriverManager,ResultSet}
+import java.sql.{DriverManager,ResultSet,Statement}
 
 import scala.io._
 import scala.util.Try
@@ -44,12 +44,12 @@ object MySQL2Pipe extends App {
       "\n\t-user=<MySQL_User> - MySQL user" +
       "\n\t-pswd=<MySQL_Password> - MySQL password" +
       "\n\t-dbnm=<MySQL_Dbname> - MySQL database name" +
-      "\n\t-sql=<sqlFile> - sql specification file" +
+      "\n\t-sqls=<sqlFile>[,<sqlFile>,...,<sqlFile>] - sql specification files" +
       "\n\t-pipe=<pipeFile> - output piped file" +
       "\n\t[-sqlEncoding=<sqlEncoding>] - sql file encoding. Default is utf-8" +
       "\n\t[-pipeEncoding=<pipeEncoding>] - output piped file encoding. Default is utf-8" +
-      "\n\t[-jsonField=<tag>[,<tag>,...,<tag>]] - json field to use if the row element is a json object." +
-      " It will use the first with content" +
+      "\n\t[-jsonField=<tag>[,<tag>,...,<tag>]] - if a column element is a json element, indicates which" +
+      "json elements to retrieve the content." +
       "\n\t[-repetitiveField=<name>[.<name>,...,<name>]] - the name of the fields that should be broken " +
       "into a new line when the repetitive separator symbol is found" +
       "\n\t[-repetitiveSep=<separator>] - repetitive field string separator. Default is //@//"
@@ -75,7 +75,7 @@ object MySQL2Pipe extends App {
   val user = parameters("user")
   val pswd = parameters("pswd")
   val dbnm = parameters("dbnm")
-  val sqlf = parameters("sql")
+  val sqlfs = parameters("sqls").trim.split(" *\\, *").toSet
   val pipe = parameters("pipe")
   val sqlEncoding = parameters.getOrElse("sqlEncoding", "utf-8")
   val pipeEncoding = parameters.getOrElse("pipeEncoding", "utf-8")
@@ -86,36 +86,80 @@ object MySQL2Pipe extends App {
 
   Class.forName("com.mysql.jdbc.Driver")
 
-  sql2pipe(host, user, pswd, dbnm, sqlf, pipe,
+  sql2pipe(host, user, pswd, dbnm, sqlfs, pipe,
            sqlEncoding, pipeEncoding, jsonField, repetitiveField, repetitiveSep)
 
+  /**
+    * Convert the result of a set of sql queries into a piped file
+    *
+    * @param host MySQL host url
+    * @param user MySQL user
+    * @param pswd MySQL password
+    * @param sqlfs set of files having sql statements
+    * @param pipe output piped file
+    * @param sqlEncoding the sql file character encoding
+    * @param pipeEncoding output piped file encoding
+    * @param jsonField if a column element is a json element, indicates which
+    *  json elements to retrieve the content.
+    * @param repetitiveFields the name of the fields that should be broken " +
+    * "into a new line when the repetitive separator symbol is found"
+    * @param repetitiveSep repetitive field string separator
+    */
   def sql2pipe(host: String,
                user: String,
                pswd: String,
                dbnm: String,
-               sqlf: String,
+               sqlfs: Set[String],
                pipe: String,
                sqlEncoding: String,
                pipeEncoding: String,
                jsonField: Set[String],
                repetitiveFields: Set[String],
                repetitiveSep: String): Unit = {
-    val reader = Source.fromFile(sqlf, sqlEncoding)
-    val content = reader.getLines().mkString(" ")
-    reader.close()
-
     val writer = Files.newBufferedWriter(Paths.get(pipe),
                                          Charset.forName(pipeEncoding))
     val con = DriverManager.getConnection(
                                  s"jdbc:mysql://${host.trim}:3306/${dbnm.trim}",
                                                                      user, pswd)
-    val rs = con.createStatement().executeQuery(content)
+    val statement = con.createStatement()
+
+    sqlfs.foreach(file => sqlFile2pipe(file, sqlEncoding, statement, writer,
+                                    jsonField, repetitiveFields, repetitiveSep))
+    writer.close
+    statement.close()
+    con.close()
+  }
+
+  /**
+    * Convert the result of a sql query into a piped file
+    *
+    * @param sqlf file having the sql statement
+    * @param sqlEncoding the sql file character encoding
+    * @param statement the object used for executing a static SQL statement
+    * @param writer the output file (piped file)
+    * @param jsonField if a column element is a json element, indicates which
+    *  json elements to retrieve the content.
+    * @param repetitiveFields the name of the fields that should be broken " +
+    * "into a new line when the repetitive separator symbol is found"
+    * @param repetitiveSep repetitive field string separator
+    */
+  private def sqlFile2pipe(sqlf: String,
+                           sqlEncoding: String,
+                           statement: Statement,
+                           writer: BufferedWriter,
+                           jsonField: Set[String],
+                           repetitiveFields: Set[String],
+                           repetitiveSep: String): Unit = {
+    val reader = Source.fromFile(sqlf, sqlEncoding)
+    val content = reader.getLines().mkString(" ")
+    reader.close()
+
+    val rs = statement.executeQuery(content)
     val meta = rs.getMetaData()
     val cols = meta.getColumnCount()
     val names = (1 to cols).foldLeft[List[String]](List()) {
       case (lst, col) => lst :+ meta.getColumnName(col)
     }
-//println(s"cols=$cols names=$names")
     while (rs.next()) {
       parseRecord(rs, names, cols, jsonField,repetitiveFields, repetitiveSep).
                                                                        foreach {
@@ -124,8 +168,6 @@ object MySQL2Pipe extends App {
           writer.newLine()
       }
     }
-    writer.close()
-    con.close()
   }
 
   /** Given a record retrieved by a query, returns a list of the contents of the
