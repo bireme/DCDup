@@ -330,8 +330,8 @@ class WebDoubleCheckDuplicated {
       case (set, line) => getSimIdsFromLine(line) match {
         case Some((id1,id2)) =>
           if (onlyFirstId) set + id1
-          else if (allowSameId) (set + id1) + id2
-          else if (id1.equals(id2)) set else (set + id1) + id2
+          else if (allowSameId) set + (id1, id2)
+          else if (id1.equals(id2)) set else set + (id1, id2)
         case None => set
       }
     }
