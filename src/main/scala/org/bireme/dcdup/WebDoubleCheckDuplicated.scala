@@ -283,7 +283,7 @@ class WebDoubleCheckDuplicated {
                                outNoDupFile: String,
                                outDupFileEncoding: String): Unit = {
     val ids = getIds(outDupFile1, outDupFileEncoding) ++
-              getIds(outDupFile2, outDupFileEncoding)
+              getIds(outDupFile2, outDupFileEncoding, onlyFirstId = true)
     val in = Source.fromFile(pipeFile, pipeFileEncoding)
     val out = Files.newBufferedWriter(Paths.get(outNoDupFile),
                                       Charset.forName(pipeFileEncoding))
@@ -315,7 +315,8 @@ class WebDoubleCheckDuplicated {
     */
   private def getIds(outDupFile: String,
                      outDupFileEncoding: String,
-                     dropLines: Int = 0): Set[String] = {
+                     dropLines: Int = 0,
+                     onlyFirstId: Boolean = false): Set[String] = {
     val reader = Source.fromFile(outDupFile, outDupFileEncoding)
     val in = reader.getLines()
 
@@ -324,7 +325,9 @@ class WebDoubleCheckDuplicated {
 
     val outSet = in.foldLeft[Set[String]](Set()) {
       case (set, line) => getSimIdsFromLine(line) match {
-        case Some((id1,id2)) => (set + id1) + id2
+        case Some((id1,id2)) =>
+          if (onlyFirstId) set + id1
+          else (set + id1) + id2
         case None => set
       }
     }
