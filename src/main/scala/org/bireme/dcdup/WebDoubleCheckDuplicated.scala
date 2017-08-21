@@ -282,7 +282,7 @@ class WebDoubleCheckDuplicated {
                                outDupFile2: String,
                                outNoDupFile: String,
                                outDupFileEncoding: String): Unit = {
-    val ids = getIds(outDupFile1, outDupFileEncoding) ++
+    val ids = getIds(outDupFile1, outDupFileEncoding, allowSameId = false) ++
               getIds(outDupFile2, outDupFileEncoding, onlyFirstId = true)
     val in = Source.fromFile(pipeFile, pipeFileEncoding)
     val out = Files.newBufferedWriter(Paths.get(outNoDupFile),
@@ -311,12 +311,15 @@ class WebDoubleCheckDuplicated {
     * @param dropLines number of drop lines to remove the header
     * @param onlyFirstId if true returns only the first id from both of duplicated
     *                   docs otherwise it retuns both ids
+    * @param allowSameId if true both ids can be the same, if false only different
+    *                    ids are included
     * @return a set of duplicated doc ids
     */
   private def getIds(outDupFile: String,
                      outDupFileEncoding: String,
                      dropLines: Int = 0,
-                     onlyFirstId: Boolean = false): Set[String] = {
+                     onlyFirstId: Boolean = false,
+                     allowSameId: Boolean = false): Set[String] = {
     val reader = Source.fromFile(outDupFile, outDupFileEncoding)
     val in = reader.getLines()
 
@@ -327,7 +330,8 @@ class WebDoubleCheckDuplicated {
       case (set, line) => getSimIdsFromLine(line) match {
         case Some((id1,id2)) =>
           if (onlyFirstId) set + id1
-          else (set + id1) + id2
+          else if (allowSameId) (set + id1) + id2
+          else if (id1.equals(id2)) set else (set + id1) + id2
         case None => set
       }
     }
