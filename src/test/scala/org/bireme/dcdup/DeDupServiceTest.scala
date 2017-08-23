@@ -33,7 +33,7 @@ import scala.io._
 * @author: Heitor Barbieri
 * date: 20170724
 */
-class SDServiceTest extends FlatSpec {
+class DeDupServiceTest extends FlatSpec {
 
   /**
     * Load the content of a web page and check if there is a Timeouts
