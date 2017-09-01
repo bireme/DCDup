@@ -21,7 +21,7 @@
 
 package org.bireme.dcdup
 
-import java.io.{File,IOException}
+import java.io.File
 import java.nio.file.{Files,Paths}
 import java.nio.charset.Charset
 

@@ -40,6 +40,8 @@ object LocalCheckDuplicated extends App {
     System.exit(1)
   }
 
+  if (args.size < 5) usage()
+  
   val outEncoding = if (args.size > 5) args(5) else "utf-8"
 
   val dup = new WebDoubleCheckDuplicated()

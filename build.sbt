@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   organization := "br.bireme",
   version := "0.1.0",
-  scalaVersion := "2.12.2" //"2.12.1"
+  scalaVersion := "2.12.3" //"2.12.1"
 )
 
 lazy val root = (project in file(".")).
@@ -11,13 +11,14 @@ lazy val root = (project in file(".")).
   )
 
 val luceneVersion = "6.6.0"
-val jacksonVersion = "2.8.9"
+val jacksonVersion = "2.9.0"//"2.8.9"
 val httpClientVersion = "4.5.3"
 val mySQLVersion = "5.1.42"
 //val mySQLVersion = "6.0.6"
 val logBackVersion = "1.2.3"
 val circeParserVersion = "0.8.0"
-val scalaTestVersion = "3.0.3"
+val scalaTestVersion = "3.0.4" //"3.0.3"
+val hairyfotrVersion = "0.1.17"
 
 libraryDependencies ++= Seq(
   "org.apache.lucene" % "lucene-analyzers-common" % luceneVersion,
@@ -38,4 +39,5 @@ libraryDependencies ++= Seq(
 
 logBuffered in Test := false
 
-scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Ywarn-unused")
+addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % hairyfotrVersion)

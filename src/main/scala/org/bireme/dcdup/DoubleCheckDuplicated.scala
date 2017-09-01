@@ -24,7 +24,7 @@ package org.bireme.dcdup
 import br.bireme.ngrams.{NGrams,NGIndex,NGSchema}
 
 import java.io.{File,IOException}
-import java.nio.file.{Files,Paths,StandardOpenOption}
+import java.nio.file.{Files,Paths}
 import java.nio.charset.Charset
 import java.util.Calendar
 
@@ -73,7 +73,6 @@ object DoubleCheckDuplicated extends App {
     val tmpIndexPath = createTmpIndex(pipeFile, pipeFileEncoding, ngSchema, time)
     val tmpIndex = new NGIndex(tmpIndexPath, tmpIndexPath, true)
     val ngIndex = new NGIndex(luceneIndex, luceneIndex, true)
-    val pipeFile1 = s"/tmp/pipe$time.tmp"
 
     // Self check
     check(tmpIndex, ngSchema, pipeFile, pipeFileEncoding, outDupFile1,
@@ -151,13 +150,12 @@ object DoubleCheckDuplicated extends App {
     var first = true
 
     in.getLines().foreach {
-      line => getIdFromLine(line) match {
-        case Some(id) =>
+      line => getIdFromLine(line).foreach {
+        id =>
           if (!ids.contains(id)) {
             if (first) first = false else out.write("\n")
             out.write(line)
           }
-        case None => ()
       }
     }
     in.close()

@@ -245,10 +245,7 @@ object MySQL2Pipe extends App {
     else {
       val doc: Json = parse(json).getOrElse(Json.Null)
       if (doc == Json.Null) json
-      else findElement(doc, jsonField, repetitiveSep) match {
-        case Some(str) => str
-        case None => json
-      }
+      else findElement(doc, jsonField, repetitiveSep).getOrElse(json)
     }
   }
 

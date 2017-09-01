@@ -28,7 +28,6 @@ import java.nio.charset.Charset
 import java.nio.file.{Files,Paths}
 import java.util.Calendar
 
-import org.apache.http.{HttpEntity,HttpResponse}
 import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.client.methods.{HttpGet,HttpPost}
 import org.apache.http.entity.StringEntity
@@ -143,7 +142,6 @@ class WebDoubleCheckDuplicated {
     val time = Calendar.getInstance().getTimeInMillis().toString
     val tmpIndexPath = "/tmp/" + "DCDup_" + time
     val tmpIndex = new NGIndex("tmpIndex", tmpIndexPath, false)
-    val maxParameters = ngSchema.getNamesPos().size();
     val indexWriter = tmpIndex.getIndexWriter(false)
     val src = Source.fromFile(pipeFile, pipeFileEncoding)
     val dest = Files.newBufferedWriter(Paths.get(outDupFile),
@@ -246,26 +244,6 @@ class WebDoubleCheckDuplicated {
     ret
   }
 
-  /** Creates a temporary DeDup index.
-    *
-    * @param pipeFile piped file with documents that will populate the index
-    * @param pipeFileEncoding piped file character encoding
-    * @param ngSchema DeDup data schema name. See http://dedup.bireme.org/services/schemas
-    * @param time time string used as a suffix of the index name
-    * @return the index name
-    */
-  private def createTmpIndex(pipeFile: String,
-                             pipeFileEncoding: String,
-                             ngSchema: NGSchema,
-                             time: String): String = {
-    val indexPath = s"/tmp/DCDup_$time"
-    val ngIndex = new NGIndex(indexPath, indexPath, false)
-
-    println("Creating temporary index")
-    NGrams.index(ngIndex, ngSchema, pipeFile, pipeFileEncoding)
-    indexPath
-  }
-
   /** Creates a pipe file that is equal to the first one less the lines whose
    * identifiers are also in the second and third ones.
    *
@@ -289,16 +267,14 @@ class WebDoubleCheckDuplicated {
                                       Charset.forName(pipeFileEncoding))
     var first = true
 
-    in.getLines().foreach {
-      line => getIdFromLine(line) match {
-        case Some(id) =>
-          if (!ids.contains(id)) {
-            if (first) first = false else out.write("\n")
-            out.write(line)
-          }
-        case None => ()
-      }
-    }
+    in.getLines().foreach(
+      line => getIdFromLine(line).foreach(id =>
+        if (!ids.contains(id)) {
+          if (first) first = false else out.write("\n")
+          out.write(line)
+        } else ()
+      )
+    )
     in.close()
     out.close()
   }

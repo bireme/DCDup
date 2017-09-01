@@ -21,11 +21,10 @@
 
 package org.bireme.dcdup
 
-import java.io.{File,IOException}
+import java.io.IOException
 
 import scala.io.Source
 
-import org.apache.http.{HttpEntity,HttpResponse}
 import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.StringEntity

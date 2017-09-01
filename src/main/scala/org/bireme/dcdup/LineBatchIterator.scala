@@ -37,7 +37,7 @@ class LineBatchIterator(iterator: Iterator[String],
 
   private def getBatchLines(iterator: Iterator[String],
                             first: Boolean): String = {
-    getLines(iterator, batchSize, "", true)
+    getLines(iterator, batchSize, "", first)
   }
 
   private def getLines(iterator: Iterator[String],
