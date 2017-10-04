@@ -26,7 +26,7 @@ import java.io.IOException
 import scala.io.Source
 
 import org.apache.http.impl.client.HttpClientBuilder
-import org.apache.http.client.methods.HttpPost
+import org.apache.http.client.methods.{HttpGet, HttpPost}
 import org.apache.http.entity.StringEntity
 import org.apache.http.util.EntityUtils
 
@@ -41,19 +41,25 @@ object WebPipe2Lucene extends App {
       "\n\t<pipeFileEncoding> - pipe file character encoding" +
       "\n\t<DeDupBaseUrl> - DeDup url service" +
       "\n\t<indexName> - DeDup index Name" +
-      "\n\t<schemaName> - DeDup schema name")
+      "\n\t<schemaName> - DeDup schema name" +
+      "\n\t[--resetIndex]")
     System.exit(1)
   }
 
   if (args.length < 5) usage()
 
-  convert(args(0), args(1), args(2), args(3), args(4))
+  val resetIndex = ((args.length > 5) && (args(5).equals("--resetIndex")))
+
+  convert(args(0), args(1), args(2), args(3), args(4), resetIndex)
 
   def convert(pipeFile: String,
               pipeFileEncoding: String,
               deDupBaseUrl: String,     // http://ts10vm.bireme.br:8180/DeDup/services/ or http://dedup.bireme.org/services
               indexName: String,
-              schemaName: String): Unit = {
+              schemaName: String,
+              resIndex: Boolean): Unit = {
+    if (resIndex) resetIndex(deDupBaseUrl, indexName)
+
     val quantity = 250 // Number of documents sent to each call of DeDup service
     val src = Source.fromFile(pipeFile, pipeFileEncoding)
     var cur = 0
@@ -65,6 +71,30 @@ object WebPipe2Lucene extends App {
         cur += quantity
     }
     src.close()
+  }
+
+  /** Re-initialize the index, turning it size equals to zero.
+    *
+    * @param baseUrl DeDup service url. For example: http://dedup.bireme.org/services or http://ts10vm.bireme.br:8180/services
+    * @param indexName DeDup index name
+    */
+  def resetIndex(baseUrl: String,
+                 indexName: String): Unit = {
+    val baseUrlTrim = baseUrl.trim
+    val burl = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
+    val resetUrl = burl + "reset/" +  indexName
+    val httpClient = HttpClientBuilder.create().build()
+    val get = new HttpGet(resetUrl)
+    get.setHeader("Content-type", "text/plain;charset=utf-8")
+    val response = httpClient.execute(get)
+    val statusCode = response.getStatusLine.getStatusCode
+
+    if (statusCode == 200) {
+      val content = EntityUtils.toString(response.getEntity())
+      if (content.startsWith("ERROR:")) throw new IOException(content)
+    } else throw new IOException(s"status code:$statusCode")
+
+    httpClient.close()
   }
 
   /** Checks some documents via DeDup webservice to look for similar docs.
