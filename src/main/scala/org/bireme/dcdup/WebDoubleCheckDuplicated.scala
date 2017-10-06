@@ -209,7 +209,7 @@ class WebDoubleCheckDuplicated {
             val cleanedRemote =  remote.map {
               ch =>
                 val chi = ch.toInt
-                if (chi < 256) ch else (chi + 1).toChar
+                if (chi < 256) ch else undefined
             }
             dest.write(cleanedRemote)
           }
