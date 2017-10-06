@@ -194,6 +194,8 @@ class WebDoubleCheckDuplicated {
     val src = Source.fromFile(pipeFile, pipeFileEncoding)
     val dest = Files.newBufferedWriter(Paths.get(outDupFile),
                                        Charset.forName(outDupFileEncoding))
+    val isUtf8 = outDupFileEncoding.trim.toLowerCase.equals("utf-8")
+    val undefined = 150.toChar
     var cur = 0
 
     new LineBatchIterator(src.getLines(), quantity).foreach {
@@ -202,13 +204,19 @@ class WebDoubleCheckDuplicated {
         val remote = rcheck(deDupBaseUrl, indexName, schemaName, batch)
         if (!remote.isEmpty) {
           if (cur != 0) dest.write("\n")
-          dest.write(remote)
+          if (isUtf8) dest.write(remote)
+          else {
+            val cleanedRemote = remote.map(
+              ch => if (ch.toInt < 256) ch else undefined).mkString
+            dest.write(cleanedRemote)
+          }
         }
         cur += quantity
     }
     src.close()
     dest.close()
   }
+
 
   /** Checks some documents via DeDup webservice to look for similar docs.
     *
