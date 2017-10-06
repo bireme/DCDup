@@ -206,8 +206,11 @@ class WebDoubleCheckDuplicated {
           if (cur != 0) dest.write("\n")
           if (isUtf8) dest.write(remote)
           else {
-            val cleanedRemote = remote.map(
-              ch => if (ch.toInt < 256) ch else undefined).mkString
+            val cleanedRemote =  remote.map {
+              ch =>
+                val chi = ch.toInt
+                if (chi < 256) ch else (chi + 1).toChar
+            }
             dest.write(cleanedRemote)
           }
         }
