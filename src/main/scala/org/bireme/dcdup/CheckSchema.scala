@@ -144,15 +144,18 @@ object CheckSchema extends App {
     val split = line.trim.split(" *\\| *", 100)
 
     if (split.size != lastIndex + 1) false
-    //else split.zipWithIndex.forall
-
     else ! split.zipWithIndex.exists {
+      case (elem, index) =>
+        map.get(index).forall(
+          schElem => (elem.isEmpty && schElem._1) || (! (map(schElem._2)._1)))
+    }
+    /*else ! split.zipWithIndex.exists {
       case (elem, index) =>
         map.get(index) match {
           case Some(schElem) =>
             (elem.isEmpty && schElem._1) || (! (map(schElem._2)._1))
           case None => true
         }
-    }
+    }*/
   }
 }
