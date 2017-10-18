@@ -27,6 +27,7 @@ import java.io.{BufferedWriter, IOException}
 import java.nio.charset.Charset
 import java.nio.file.{Files,Paths}
 
+import scala.collection.immutable.TreeMap
 import scala.io._
 
 /** Check an input piped file against a local Ngrams schema file or against
@@ -119,7 +120,7 @@ object CheckPipeFile extends App {
     parse(schema) match {
       case Right(doc) =>
         val map1 = doc.hcursor.downField("params").values.get.
-          foldLeft[Map[String, (Int,String,String)]] (Map()) {
+          foldLeft[Map[String, (Int,String,String)]] (TreeMap()) {
             case (map,jelem) =>
               val cursor = jelem.hcursor
               map + (
