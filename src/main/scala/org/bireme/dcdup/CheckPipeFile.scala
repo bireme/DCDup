@@ -150,7 +150,8 @@ object CheckPipeFile extends App {
       case (elem, index) =>
         map.get(index).forall(
           schElem => (elem.isEmpty && schElem._1) ||
-              (! ((schElem._2 != -1) && (map(schElem._2)._1))))
+                     ((schElem._2 != -1) && split(schElem._2).isEmpty)
+        )
     }
     /*else ! split.zipWithIndex.exists {
       case (elem, index) =>
