@@ -115,7 +115,7 @@ object CheckPipeFile extends App {
     }
   }
 
-  private def parseSchema(schema: String): Map[Int, (Boolean, Int)] = {
+  private def parseSchema(schema: String): Map[Int, (Boolean, Int)] = { //pos -> (required,reqFieldPos)
     parse(schema) match {
       case Right(doc) =>
         val map1 = doc.hcursor.downField("params").values.get.
@@ -132,7 +132,8 @@ object CheckPipeFile extends App {
           }
         map1.values.foldLeft[Map[Int,(Boolean, Int)]](Map()) {
           case (map,(pos,presence,reqField)) =>
-            map + (pos -> (presence.equals("required"), map1(reqField)._1))
+            map + (pos -> (presence.toLowerCase.equals("required"),
+                   if (reqField.isEmpty) -1 else map1(reqField)._1))
         }
       case Left(_) => throw new IOException(s"invalid schema [$schema]")
     }
@@ -147,7 +148,8 @@ object CheckPipeFile extends App {
     else ! split.zipWithIndex.exists {
       case (elem, index) =>
         map.get(index).forall(
-          schElem => (elem.isEmpty && schElem._1) || (! (map(schElem._2)._1)))
+          schElem => (elem.isEmpty && schElem._1) ||
+              (! ((schElem._2 != -1) && (map(schElem._2)._1))))
     }
     /*else ! split.zipWithIndex.exists {
       case (elem, index) =>
