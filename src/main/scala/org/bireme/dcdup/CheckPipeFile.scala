@@ -120,7 +120,7 @@ object CheckPipeFile extends App {
     parse(schema) match {
       case Right(doc) =>
         val map1 = doc.hcursor.downField("params").values.get.
-          foldLeft[Map[String, (Int,String,String)]] (TreeMap()) {
+          foldLeft[Map[String, (Int,String,String)]] (Map()) {
             case (map,jelem) =>
               val cursor = jelem.hcursor
               map + (
@@ -131,7 +131,7 @@ object CheckPipeFile extends App {
                 )
               )
           }
-        map1.values.foldLeft[Map[Int,(Boolean, Int)]](Map()) {
+        map1.values.foldLeft[Map[Int,(Boolean, Int)]](TreeMap()) {
           case (map,(pos,presence,reqField)) =>
             map + (pos -> (presence.toLowerCase.equals("required"),
                    if (reqField.isEmpty) -1 else map1(reqField)._1))
