@@ -35,9 +35,9 @@ import scala.io._
   * @author: Heitor Barbieri
   * date: 20170416
   */
-object CheckSchema extends App {
+object CheckPipeFile extends App {
   private def usage(): Unit = {
-    System.err.println("usage: CheckSchema" +
+    System.err.println("usage: CheckPipeFile" +
       "\n\t-pipe=<pipeFile> - input piped file" +
       "\n\t[-pipeEncoding=<encoding>] - piped file encoding. Default is utf-8" +
       "\n\t( -schemaFile=<file path> - local NGrams schema file" +
