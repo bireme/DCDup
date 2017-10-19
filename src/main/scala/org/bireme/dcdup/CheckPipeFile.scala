@@ -38,7 +38,9 @@ import scala.io._
   */
 object CheckPipeFile extends App {
   private def usage(): Unit = {
-    System.err.println("usage: CheckPipeFile" +
+    System.err.println("Check an input piped file against a local Ngrams schema" +
+      "\nfile or against a remote schema file in a DeDup server." +
+      "\n\nusage: CheckPipeFile" +
       "\n\t-pipe=<pipeFile> - input piped file" +
       "\n\t[-pipeEncoding=<encoding>] - piped file encoding. Default is utf-8" +
       "\n\t-schemaUrl=<DeDup url> - url of a DeDup schema" +
@@ -71,8 +73,21 @@ object CheckPipeFile extends App {
   println(s"Incorrectly formatted lines : $badDocs")
 }
 
+/** Check an input piped file against a local Ngrams schema file or against
+  * a remote schema file in a DeDup server.
+  */
 object VerifyPipeFile {
 
+  /**
+    * Check an input piped file against a DeDup schema file
+    *
+    * @param pipe - input piped file to be checked
+    * @param encoding - piped file character encoding
+    * @param schemaUrl - url of the DeDup schema page. For example: http://dedup.bireme.org/services/schema/LILACS_Sas_Seven
+    * @param good - path of the temporary file having lines that follow the schema
+    * @param bad - path of the temporary file having lines that do not follow the schema
+    * @return (number of good lines, number of bad lines)
+    */
   def check(pipe: String,
             encoding: String,
             schemaUrl: String,
@@ -96,6 +111,15 @@ object VerifyPipeFile {
     (goodDocs,badDocs)
   }
 
+  /**
+    * Check an input piped file against a DeDup schema file
+    *
+    * @param lines - input piped file line iterator
+    * @param schema - DeDup schema content string
+    * @param goodWriter - writer to the temporary file having lines that follow the schema
+    * @param badWriter - writer to the temporary file having lines that do not follow the schema
+    * @return (number of good lines, number of bad lines)
+    */
   private def checkRaw(lines: Iterator[String],
                        schema: String,
                        goodWriter: BufferedWriter,
@@ -116,6 +140,13 @@ object VerifyPipeFile {
     }
   }
 
+  /**
+    * Parse a DeDup schema string and convert it into a map
+    *
+    * @param schema DeDup schema content string
+    * @return a map where the key is the field 'pos' and the value is a duple of
+    *         (field is required (boolean), position of the requiredField)
+    */
   private def parseSchema(schema: String): Map[Int, (Boolean, Int)] = { //pos -> (required,reqFieldPos)
     parse(schema) match {
       case Right(doc) =>
@@ -140,6 +171,14 @@ object VerifyPipeFile {
     }
   }
 
+  /**
+    * Check if a piped line follows the schema
+    *
+    * @param map as returned by parseSchema Foundation
+    * @param lastIndex the biggest 'pos' field of the schema
+    * @param line the line to be checked
+    * @return true if the line follows the schema and false otherwise
+    */
   private def checkLine(map: Map[Int, (Boolean, Int)],
                         lastIndex: Int,
                         line: String): Boolean = {
