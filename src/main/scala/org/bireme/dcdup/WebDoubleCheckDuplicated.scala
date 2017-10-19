@@ -89,8 +89,7 @@ class WebDoubleCheckDuplicated {
     val goodFileName = File.createTempFile("good", "").getPath()
     val badFileName = File.createTempFile("bad", "").getPath()
     val (good,bad) = VerifyPipeFile.check(pipeFile, pipeFileEncoding,
-                                          deDupBaseUrl + schemaName,
-                                          goodFileName, badFileName)
+      deDupBaseUrl + "/schema/" + schemaName, goodFileName, badFileName)
 
     println(s"Checking duplicates for $good documents")
     if (bad > 0) println(s"Skipping $bad documents. See file: $badFileName")
