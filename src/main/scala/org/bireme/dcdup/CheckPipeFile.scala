@@ -41,8 +41,7 @@ object CheckPipeFile extends App {
     System.err.println("usage: CheckPipeFile" +
       "\n\t-pipe=<pipeFile> - input piped file" +
       "\n\t[-pipeEncoding=<encoding>] - piped file encoding. Default is utf-8" +
-      "\n\t( -schemaFile=<file path> - local NGrams schema file" +
-      "\n\t| -schemaUrl=<DeDup url> - url of a DeDup schema )" +
+      "\n\t-schemaUrl=<DeDup url> - url of a DeDup schema" +
       "\n\t-good=<file path> - file that contains piped lines following the schema" +
       "\n\t-bad=<file path> - file that contains piped lines that does not follow the schema"
     )
@@ -50,69 +49,70 @@ object CheckPipeFile extends App {
   }
 
   if (args.length < 4) usage()
-
  // Parse parameters
   val parameters = args.foldLeft[Map[String,String]](Map()) {
-    case (map,par) => {
+    case (map,par) =>
       val split = par.split(" *= *", 2)
       if (split.length == 2) map + ((split(0).substring(1), split(1)))
       else {
         usage()
         map
       }
-    }
   }
 
   val pipe = parameters("pipe")
   val encoding = parameters.getOrElse("pipeEncoding", "utf-8")
-  val schemaFile = parameters.get("schemaFile")
-  val schemaUrl = parameters.get("schemaUrl")
+  val schemaUrl = parameters("schemaUrl")
   val good = parameters("good")
   val bad = parameters("bad")
+  val (goodDocs, badDocs) = VerifyPipeFile.check(pipe, encoding, schemaUrl, good, bad)
 
-  check(pipe, encoding, schemaFile, schemaUrl, good, bad)
+  println(s"Properly formatted lines: $goodDocs")
+  println(s"Incorrectly formatted lines : $badDocs")
+}
+
+object VerifyPipeFile {
 
   def check(pipe: String,
             encoding: String,
-            schemaFile: Option[String],
-            schemaUrl: Option[String],
+            schemaUrl: String,
             good: String,
-            bad: String): Unit = {
-
+            bad: String): (Int, Int) = {
     val reader = Source.fromFile(pipe, encoding)
     val lines = reader.getLines()
-    val source = schemaFile match {
-      case Some(file) => Source.fromFile(file, "utf-8")
-      case None => schemaUrl match {
-        case Some(url) => Source.fromURL(url, "utf-8")
-        case None => throw new IOException("schema required")
-      }
-    }
+    val source = Source.fromURL(schemaUrl, "utf-8")
     val schema = source.getLines().mkString(" ")
     val goodWriter = Files.newBufferedWriter(Paths.get(good),
                                              Charset.forName(encoding))
     val badWriter = Files.newBufferedWriter(Paths.get(bad),
                                             Charset.forName(encoding))
-
-    checkRaw(lines, schema, goodWriter, badWriter)
+    val (goodDocs,badDocs) = checkRaw(lines, schema, goodWriter, badWriter)
 
     reader.close()
     source.close()
     goodWriter.close()
     badWriter.close()
+
+    (goodDocs,badDocs)
   }
 
   private def checkRaw(lines: Iterator[String],
                        schema: String,
                        goodWriter: BufferedWriter,
-                       badWriter: BufferedWriter): Unit = {
+                       badWriter: BufferedWriter): (Int,Int) = {
     val map = parseSchema(schema) // (pos => (presence, reqFieldPos))
     val lastIndex = map.last._1
     require(lastIndex >= 0)
 
-    lines.foreach {
-      line => if (checkLine(map, lastIndex, line)) goodWriter.write(line + "\n")
-              else badWriter.write(line + "\n")
+    lines.foldLeft[(Int,Int)] (0,0) {
+      case ((good,bad),line) =>
+        if (checkLine(map, lastIndex, line)) {
+          goodWriter.write(line + "\n")
+          (good + 1, bad)
+        } else {
+          badWriter.write(line + "\n")
+          (good, bad + 1)
+        }
     }
   }
 

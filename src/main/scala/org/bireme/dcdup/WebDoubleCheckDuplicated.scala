@@ -84,6 +84,17 @@ class WebDoubleCheckDuplicated {
                   outDupFile2: String,
                   outNoDupFile: String,
                   outDupFileEncoding: String): Unit = {
+    // Verifying pipe file integrity
+    println("\nVerifying pipe file integrity")
+    val goodFileName = File.createTempFile("good", "").getPath()
+    val badFileName = File.createTempFile("bad", "").getPath()
+    val (good,bad) = VerifyPipeFile.check(pipeFile, pipeFileEncoding,
+                                          deDupBaseUrl + schemaName,
+                                          goodFileName, badFileName)
+
+    println(s"Checking duplicates for $good documents")
+    if (bad > 0) println(s"Skipping $bad documents. See file: $badFileName")
+
     val schemaStr = loadSchema(deDupBaseUrl, schemaName)
 //println(s"[$schemaStr]")
     val ngSchema = new NGSchema(schemaName, schemaStr)

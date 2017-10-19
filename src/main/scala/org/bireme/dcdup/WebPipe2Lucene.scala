@@ -21,7 +21,7 @@
 
 package org.bireme.dcdup
 
-import java.io.IOException
+import java.io.{File, IOException}
 
 import scala.io.Source
 
@@ -58,6 +58,16 @@ object WebPipe2Lucene extends App {
               indexName: String,
               schemaName: String,
               resIndex: Boolean): Unit = {
+    // Verifying pipe file integrity
+    println("\nVerifying pipe file integrity")
+    val goodFileName = File.createTempFile("good", "").getPath()
+    val badFileName = File.createTempFile("bad", "").getPath()
+    val (good,bad) = VerifyPipeFile.check(pipeFile, pipeFileEncoding,
+                                          deDupBaseUrl + schemaName,
+                                          goodFileName, badFileName)
+    println(s"Using $good documents")
+    if (bad > 0) println(s"Skipping $bad documents. See file: $badFileName\n")
+
     if (resIndex) resetIndex(deDupBaseUrl, indexName)
 
     val quantity = 250 // Number of documents sent to each call of DeDup service
