@@ -17,7 +17,7 @@ val httpClientVersion = "4.5.3"
 val mySQLVersion = "8.0.8-dmr"
 val logBackVersion = "1.2.3"
 val circeParserVersion = "0.8.0"
-val scalaTestVersion = "3.0.4"
+val scalaTestVersion = "3.0.5"
 val hairyfotrVersion = "0.1.17"
 
 libraryDependencies ++= Seq(
@@ -38,6 +38,7 @@ libraryDependencies ++= Seq(
 )
 
 logBuffered in Test := false
+trapExit := false
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Ywarn-unused")
 addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % hairyfotrVersion)

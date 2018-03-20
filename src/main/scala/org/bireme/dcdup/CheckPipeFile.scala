@@ -24,11 +24,12 @@ package org.bireme.dcdup
 import io.circe.parser._
 
 import java.io.{BufferedWriter, IOException}
-import java.nio.charset.Charset
+import java.nio.charset.{Charset, MalformedInputException}
 import java.nio.file.{Files,Paths}
 
 import scala.collection.immutable.TreeMap
 import scala.io._
+import scala.util.{Try, Success, Failure}
 
 /** Check an input piped file against a local Ngrams schema file or against
   * a remote schema file in a DeDup server.
@@ -67,10 +68,18 @@ object CheckPipeFile extends App {
   val schemaUrl = parameters("schemaUrl")
   val good = parameters("good")
   val bad = parameters("bad")
-  val (goodDocs, badDocs) = VerifyPipeFile.check(pipe, encoding, schemaUrl, good, bad)
 
-  println(s"Properly formatted lines: $goodDocs")
-  println(s"Incorrectly formatted lines : $badDocs")
+  Try(VerifyPipeFile.check(pipe, encoding, schemaUrl, good, bad)) match {
+    case Success((goodDocs, badDocs)) =>
+      println(s"Properly formatted lines: $goodDocs")
+      println(s"Incorrectly formatted lines : $badDocs")
+    case Failure(e) => e match {
+      case _: MalformedInputException =>
+        println(s"==> The encoding[$encoding] specified as '-pipeEncoding' " +
+          "parameter seems not to be the same as the pipe file.")
+      case _ => throw(e)
+    }
+  }
 }
 
 /** Check an input piped file against a local Ngrams schema file or against
