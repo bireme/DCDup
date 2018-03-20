@@ -84,7 +84,8 @@ object MySQL2Pipe extends App {
                                                           split(" *\\, *").toSet
   val repetitiveSep = parameters.getOrElse("repetitiveSep", "//@//")
 
-  Class.forName("com.mysql.jdbc.Driver")
+  //Class.forName("com.mysql.jdbc.Driver")
+  Class.forName("com.mysql.cj.jdbc.Driver")
 
   sql2pipe(host, user, pswd, dbnm, sqlfs, pipe,
            sqlEncoding, pipeEncoding, jsonField, repetitiveField, repetitiveSep)
@@ -119,7 +120,8 @@ object MySQL2Pipe extends App {
     val writer = Files.newBufferedWriter(Paths.get(pipe),
                                          Charset.forName(pipeEncoding))
     val con = DriverManager.getConnection(
-                                 s"jdbc:mysql://${host.trim}:3306/${dbnm.trim}",
+                //s"jdbc:mysql://${host.trim}:3306/${dbnm.trim}",
+                s"jdbc:mysql://${host.trim}:3306/${dbnm.trim}?useTimezone=true&serverTimezone=UTC&useSSL=false",
                                                                      user, pswd)
     val statement = con.createStatement()
 

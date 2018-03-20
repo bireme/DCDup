@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   organization := "br.bireme",
   version := "0.1.0",
-  scalaVersion := "2.12.3" //"2.12.1"
+  scalaVersion := "2.12.4" // "2.12.3"
 )
 
 lazy val root = (project in file(".")).
@@ -10,14 +10,14 @@ lazy val root = (project in file(".")).
     name := "DCDup"
   )
 
-val luceneVersion = "6.6.0"
-val jacksonVersion = "2.9.0"//"2.8.9"
+val luceneVersion = "7.1.0" //"6.6.0"
+val jacksonVersion = "2.9.2" // "2.9.0"
 val httpClientVersion = "4.5.3"
-val mySQLVersion = "5.1.42"
-//val mySQLVersion = "6.0.6"
+//val mySQLVersion = "5.1.42"
+val mySQLVersion = "8.0.8-dmr"
 val logBackVersion = "1.2.3"
 val circeParserVersion = "0.8.0"
-val scalaTestVersion = "3.0.4" //"3.0.3"
+val scalaTestVersion = "3.0.4"
 val hairyfotrVersion = "0.1.17"
 
 libraryDependencies ++= Seq(

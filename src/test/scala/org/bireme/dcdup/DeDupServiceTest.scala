@@ -75,7 +75,7 @@ class DeDupServiceTest extends FlatSpec {
 
   // === Check if the Similar Documents applet is available ===
   "The Similar Documents Service servlet" should "be on" in {
-    val opt = "\\<option value=\"lilacs_Sas\"\\s+selected\\s+\\>lilacs_Sas\\</option\\>".r
+    val opt = "\\<option value=\"lilacs_Sas\"(\\s+selected)?\\s+\\>lilacs_Sas\\</option\\>".r
     val url = s"$service/services"
     val content = pageContent(url)
 
@@ -83,7 +83,7 @@ class DeDupServiceTest extends FlatSpec {
   }
 
   // === Check the 'Show Schemas' service ===
-  s"The user" should "retrieve all DeDup schemas" in {
+  "The user" should "retrieve all DeDup schemas" in {
   val url = "http://dedup.bireme.org/services/schemas"
   val content = pageContent(url)
 
@@ -91,7 +91,7 @@ class DeDupServiceTest extends FlatSpec {
   }
 
   // === Check the 'Show Indexes' service ===
-  s"The user" should "retrieve all DeDup indexes" in {
+  "The user" should "retrieve all DeDup indexes" in {
     val url = "http://dedup.bireme.org/services/indexes"
     val content = pageContent(url)
 
@@ -99,7 +99,7 @@ class DeDupServiceTest extends FlatSpec {
   }
 
   // === Check the 'Show One Schema' service ===
-  s"The user" should "retrieve 'LILACS_Sas_Seven' schema" in {
+  "The user" should "retrieve 'LILACS_Sas_Seven' schema" in {
     val url = "http://dedup.bireme.org/services/schema/LILACS_Sas_Seven"
     val content = pageContent(url)
 
@@ -107,7 +107,7 @@ class DeDupServiceTest extends FlatSpec {
   }
 
   // === Check the "Duplicates (GET)" service ===
-  s"The user" should "retrieve similar documents" in {
+  "The user" should "retrieve similar documents" in {
     val url = "http://dedup.bireme.org/services/get/duplicates/" +
     "?database=lilacs_Sas" +
     "&schema=LILACS_Sas_Seven" +
@@ -122,7 +122,11 @@ class DeDupServiceTest extends FlatSpec {
     "&pagina_inicial=239"
 
     val content = pageContent(url)
-
-    content should include regex "\"similarity\":\"1.0\""
+    val similarity = "\"similarity\":\"([^\"]+)\"".r
+    val simVal = similarity.findFirstMatchIn(content) match {
+      case Some(mat) => mat.group(1).toFloat
+      case None => 0f
+    }
+    simVal should be >= 0.8f
   }
 }
