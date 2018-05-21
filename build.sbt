@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   organization := "br.bireme",
   version := "0.1.0",
-  scalaVersion := "2.12.4" // "2.12.3"
+  scalaVersion := "2.12.6" //"2.12.4"
 )
 
 lazy val root = (project in file(".")).
@@ -10,17 +10,20 @@ lazy val root = (project in file(".")).
     name := "DCDup"
   )
 
-val luceneVersion = "7.1.0" //"6.6.0"
-val jacksonVersion = "2.9.2" // "2.9.0"
-val httpClientVersion = "4.5.3"
-//val mySQLVersion = "5.1.42"
-val mySQLVersion = "8.0.8-dmr"
+val commonsLangVersion = "3.7"
+val commonsTextVersion = "1.3"
+val luceneVersion = "7.3.0" //"7.1.0"
+val jacksonVersion = "2.9.5" // "2.9.2"
+val httpClientVersion = "4.5.5" //"4.5.3"
+val mySQLVersion = "8.0.11" // "8.0.8-dmr"
 val logBackVersion = "1.2.3"
-val circeParserVersion = "0.8.0"
+val circeParserVersion = "0.9.3" //"0.8.0"
 val scalaTestVersion = "3.0.5"
 val hairyfotrVersion = "0.1.17"
 
 libraryDependencies ++= Seq(
+  "org.apache.commons" % "commons-lang3" % commonsLangVersion,
+  "org.apache.commons" % "commons-text" % commonsTextVersion,
   "org.apache.lucene" % "lucene-analyzers-common" % luceneVersion,
   "org.apache.lucene" % "lucene-core" % luceneVersion,
   "org.apache.lucene" % "lucene-queryparser" % luceneVersion,

@@ -24,7 +24,7 @@ package org.bireme.dcdup
 import br.bireme.ngrams.{NGrams,NGIndex,NGSchema}
 
 import java.io.{File,IOException}
-import java.nio.charset.Charset
+import java.nio.charset.{Charset, CodingErrorAction}
 import java.nio.file.{Files,Paths}
 import java.util.Calendar
 
@@ -33,7 +33,7 @@ import org.apache.http.client.methods.{HttpGet,HttpPost}
 import org.apache.http.entity.StringEntity
 import org.apache.http.util.EntityUtils
 
-import scala.io.Source
+import scala.io.{Codec, Source}
 import scala.collection.JavaConverters._
 
 /** Checks a DeDup input piped file against itself to look for duplicated
@@ -127,7 +127,13 @@ class WebDoubleCheckDuplicated {
                  pipeFileEncoding: String,
                  outDupFile: String,
                  outDupFileEncoding: String): Unit = {
-    val src = Source.fromFile(schemaFile, schemaFileEncoding)
+    val codec = schemaFileEncoding.toLowerCase match {
+      case "iso8859-1" => Codec.ISO8859
+      case _           => Codec.UTF8
+    }
+    val codAction = CodingErrorAction.REPLACE
+    val decoder = codec.decoder.onMalformedInput(codAction)
+    val src = Source.fromFile(schemaFile)(decoder)
     val schemaStr = src.getLines().mkString("\n")
     src.close()
 
@@ -153,7 +159,13 @@ class WebDoubleCheckDuplicated {
     val tmpIndexPath = "/tmp/" + "DCDup_" + time
     val tmpIndex = new NGIndex("tmpIndex", tmpIndexPath, false)
     val indexWriter = tmpIndex.getIndexWriter(false)
-    val src = Source.fromFile(pipeFile, pipeFileEncoding)
+    val codec = pipeFileEncoding.toLowerCase match {
+      case "iso8859-1" => Codec.ISO8859
+      case _           => Codec.UTF8
+    }
+    val codAction = CodingErrorAction.REPLACE
+    val decoder = codec.decoder.onMalformedInput(codAction)
+    val src = Source.fromFile(pipeFile)(decoder)
     val dest = Files.newBufferedWriter(Paths.get(outDupFile),
                                        Charset.forName(outDupFileEncoding))
     var cur = 0
@@ -201,7 +213,13 @@ class WebDoubleCheckDuplicated {
                   outDupFile: String,
                   outDupFileEncoding: String): Unit = {
     val quantity = 250 // Number of documents sent to each call of DeDup service
-    val src = Source.fromFile(pipeFile, pipeFileEncoding)
+    val codec = pipeFileEncoding.toLowerCase match {
+      case "iso8859-1" => Codec.ISO8859
+      case _           => Codec.UTF8
+    }
+    val codAction = CodingErrorAction.REPLACE
+    val decoder = codec.decoder.onMalformedInput(codAction)
+    val src = Source.fromFile(pipeFile)(decoder)
     val dest = Files.newBufferedWriter(Paths.get(outDupFile),
                                        Charset.forName(outDupFileEncoding))
     val isUtf8 = outDupFileEncoding.trim.toLowerCase.equals("utf-8")
@@ -256,9 +274,10 @@ class WebDoubleCheckDuplicated {
     val statusCode = response.getStatusLine.getStatusCode
     val ret = if (statusCode == 200) {
       val content = EntityUtils.toString(response.getEntity(), "utf-8").trim()
-      if (content.startsWith("ERROR:")) throw new IOException(content)
+      if (content.startsWith("ERROR:")) throw new IOException("lines=" + lines +
+        "\nexplanation=" + content)
       content
-    } else throw new IOException(s"status code:$statusCode")
+    } else throw new IOException(s"http post response code:$statusCode")
 
     httpClient.close()
 //println(s"ret=[$ret]")
@@ -283,7 +302,13 @@ class WebDoubleCheckDuplicated {
                                outDupFileEncoding: String): Unit = {
     val ids = getIds(outDupFile1, outDupFileEncoding, allowSameId = false) ++
               getIds(outDupFile2, outDupFileEncoding, onlyFirstId = true)
-    val in = Source.fromFile(pipeFile, pipeFileEncoding)
+    val codec = pipeFileEncoding.toLowerCase match {
+      case "iso8859-1" => Codec.ISO8859
+      case _           => Codec.UTF8
+    }
+    val codAction = CodingErrorAction.REPLACE
+    val decoder = codec.decoder.onMalformedInput(codAction)
+    val in = Source.fromFile(pipeFile)(decoder)
     val out = Files.newBufferedWriter(Paths.get(outNoDupFile),
                                       Charset.forName(pipeFileEncoding))
     var first = true
@@ -317,7 +342,13 @@ class WebDoubleCheckDuplicated {
                      dropLines: Int = 0,
                      onlyFirstId: Boolean = false,
                      allowSameId: Boolean = false): Set[String] = {
-    val reader = Source.fromFile(outDupFile, outDupFileEncoding)
+    val codec = outDupFileEncoding.toLowerCase match {
+      case "iso8859-1" => Codec.ISO8859
+      case _           => Codec.UTF8
+    }
+    val codAction = CodingErrorAction.REPLACE
+    val decoder = codec.decoder.onMalformedInput(codAction)
+    val reader = Source.fromFile(outDupFile)(decoder)
     val in = reader.getLines()
 
     // Skip header licenses lines
@@ -327,8 +358,8 @@ class WebDoubleCheckDuplicated {
       case (set, line) => getSimIdsFromLine(line) match {
         case Some((id1,id2)) =>
           if (onlyFirstId) set + id1
-          else if (allowSameId) set + (id1, id2)
-          else if (id1.equals(id2)) set else set + (id1, id2)
+          else if (allowSameId) (set + (id1, id2))
+          else if (id1.equals(id2)) set else (set + (id1, id2))
         case None => set
       }
     }

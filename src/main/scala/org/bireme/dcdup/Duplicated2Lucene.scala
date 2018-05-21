@@ -23,9 +23,9 @@ package org.bireme.dcdup
 
 import java.io.File
 import java.nio.file.{Files,Paths}
-import java.nio.charset.Charset
+import java.nio.charset.{Charset, CodingErrorAction}
 
-import scala.io.Source
+import scala.io.{Codec, Source}
 
 /**
   * Create a Lucene index from an input piped file and a duplicated output file
@@ -80,7 +80,13 @@ object Duplicated2Lucene extends App {
     */
   private def getDeniedDocIds(dupFile: String,
                               dupFileEncoding: String): Set[Int] = {
-    val dsrc = Source.fromFile(dupFile, dupFileEncoding)
+    val codec = dupFileEncoding.toLowerCase match {
+      case "iso8859-1" => Codec.ISO8859
+      case _           => Codec.UTF8
+    }
+    val codAction = CodingErrorAction.REPLACE
+    val decoder = codec.decoder.onMalformedInput(codAction)
+    val dsrc = Source.fromFile(dupFile)(decoder)
 
     val set = dsrc.getLines.foldLeft[Set[Int]](Set()) {
       case (set1,line) =>
@@ -109,7 +115,13 @@ object Duplicated2Lucene extends App {
   private def genNoDupFile(pipeFile: String,
                            pipeFileEncoding: String,
                            denied: Set[Int]): String = {
-    val src = Source.fromFile(pipeFile, pipeFileEncoding)
+    val codec = pipeFileEncoding.toLowerCase match {
+      case "iso8859-1" => Codec.ISO8859
+      case _           => Codec.UTF8
+    }
+    val codAction = CodingErrorAction.REPLACE
+    val decoder = codec.decoder.onMalformedInput(codAction)
+    val src = Source.fromFile(pipeFile)(decoder)
     val tmpFile = Files.createTempFile(Paths.get("."), null, null)
     val writer = Files.newBufferedWriter(tmpFile,
                                          Charset.forName(pipeFileEncoding))

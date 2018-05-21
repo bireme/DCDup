@@ -24,7 +24,7 @@ package org.bireme.dcdup
 import io.circe.parser._
 
 import java.io.{BufferedWriter, IOException}
-import java.nio.charset.{Charset, MalformedInputException}
+import java.nio.charset.{Charset, CodingErrorAction, MalformedInputException}
 import java.nio.file.{Files,Paths}
 
 import scala.collection.immutable.TreeMap
@@ -102,7 +102,13 @@ object VerifyPipeFile {
             schemaUrl: String,
             good: String,
             bad: String): (Int, Int) = {
-    val reader = Source.fromFile(pipe, encoding)
+    val codec = encoding.toLowerCase match {
+      case "iso8859-1" => Codec.ISO8859
+      case _           => Codec.UTF8
+    }
+    val codAction = CodingErrorAction.REPLACE
+    val decoder = codec.decoder.onMalformedInput(codAction)
+    val reader = Source.fromFile(pipe)(decoder)
     val lines = reader.getLines()
     val source = Source.fromURL(schemaUrl, "utf-8")
     val schema = source.getLines().mkString(" ")
@@ -110,7 +116,7 @@ object VerifyPipeFile {
                                              Charset.forName(encoding))
     val badWriter = Files.newBufferedWriter(Paths.get(bad),
                                             Charset.forName(encoding))
-    val (goodDocs,badDocs) = checkRaw(lines, schema, goodWriter, badWriter)
+    val (goodDocs, badDocs) = checkRaw(lines, schema, goodWriter, badWriter)
 
     reader.close()
     source.close()

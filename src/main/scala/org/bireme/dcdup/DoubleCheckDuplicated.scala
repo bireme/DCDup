@@ -25,10 +25,10 @@ import br.bireme.ngrams.{NGrams,NGIndex,NGSchema}
 
 import java.io.{File,IOException}
 import java.nio.file.{Files,Paths}
-import java.nio.charset.Charset
+import java.nio.charset.{Charset, CodingErrorAction}
 import java.util.Calendar
 
-import scala.io.Source
+import scala.io.{Codec, Source}
 
 /** Checks a DeDup input piped file against itself to look for duplicated
   * documents and then against a Dedup index (usually LILACS) to also
@@ -144,7 +144,13 @@ object DoubleCheckDuplicated extends App {
                                outDupFileEncoding: String): Unit = {
     val auxIds = getIds(outDupFile1, outDupFileEncoding)
     val ids = auxIds ++ getIds(outDupFile2, outDupFileEncoding, onlyFirstId= true)
-    val in = Source.fromFile(pipeFile, pipeFileEncoding)
+    val codec = pipeFileEncoding.toLowerCase match {
+      case "iso8859-1" => Codec.ISO8859
+      case _           => Codec.UTF8
+    }
+    val codAction = CodingErrorAction.REPLACE
+    val decoder = codec.decoder.onMalformedInput(codAction)
+    val in = Source.fromFile(pipeFile)(decoder)
     val out = Files.newBufferedWriter(Paths.get(outNoDupFile),
                                       Charset.forName(pipeFileEncoding))
     var first = true
@@ -174,7 +180,13 @@ object DoubleCheckDuplicated extends App {
   private def getIds(outDupFile: String,
                      outDupFileEncoding: String,
                      onlyFirstId: Boolean = false): Set[String] = {
-    val reader = Source.fromFile(outDupFile, outDupFileEncoding)
+    val codec = outDupFileEncoding.toLowerCase match {
+      case "iso8859-1" => Codec.ISO8859
+      case _           => Codec.UTF8
+    }
+    val codAction = CodingErrorAction.REPLACE
+    val decoder = codec.decoder.onMalformedInput(codAction)
+    val reader = Source.fromFile(outDupFile)(decoder)
     val in = reader.getLines()
 
     // Skip two first header licenses

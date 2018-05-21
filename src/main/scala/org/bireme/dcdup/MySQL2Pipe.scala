@@ -25,7 +25,7 @@ import io.circe._
 import io.circe.parser._
 
 import java.io.BufferedWriter
-import java.nio.charset.Charset
+import java.nio.charset.{Charset, CodingErrorAction}
 import java.nio.file.{Files,Paths}
 import java.sql.{DriverManager,ResultSet,Statement}
 
@@ -152,7 +152,13 @@ object MySQL2Pipe extends App {
                            jsonField: Set[String],
                            repetitiveFields: Set[String],
                            repetitiveSep: String): Unit = {
-    val reader = Source.fromFile(sqlf, sqlEncoding)
+    val codec = sqlEncoding.toLowerCase match {
+      case "iso8859-1" => Codec.ISO8859
+      case _           => Codec.UTF8
+    }
+    val codAction = CodingErrorAction.REPLACE
+    val decoder = codec.decoder.onMalformedInput(codAction)
+    val reader = Source.fromFile(sqlf)(decoder)
     val content = reader.getLines().mkString(" ")
     reader.close()
 
@@ -198,11 +204,12 @@ object MySQL2Pipe extends App {
       case(lst,col) => {
         val str = (Try(rs.getString(col)) getOrElse "????")
         val str2 = if (str == null) "" else str.trim()
-        val str3 =  if (str2.startsWith("[{") || str2.startsWith("{"))
-                      getElement(str2, jsonField, repetitiveSep)
-                    else str2
-        val str4 = str3.replace("|", " ")
-        val elems = parseCell(str4, repetitiveFields(names(col - 1)), repetitiveSep)
+        val str3 = if (Tools.isUtf8Encoding(str2)) str2 else "????"
+        val str4 =  if (str3.startsWith("[{") || str3.startsWith("{"))
+                      getElement(str3, jsonField, repetitiveSep)
+                    else str3
+        val str5 = str4.replace("|", " ")
+        val elems = parseCell(str5, repetitiveFields(names(col - 1)), repetitiveSep)
         if (lst.isEmpty) elems else elems.flatMap(elem => lst.map(l => s"$l|$elem"))
       }
     }

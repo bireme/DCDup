@@ -23,7 +23,8 @@ package org.bireme.dcdup
 
 import br.bireme.ngrams.{NGrams,NGIndex,NGSchema}
 
-import scala.io.Source
+import java.nio.charset.CodingErrorAction
+import scala.io.{Codec, Source}
 
 /**
   * Creates a local Lucene index from a input piped file
@@ -71,12 +72,23 @@ class Pipe2Lucene {
     val index = new NGIndex(indexPath, indexPath, false)
     val writer = index.getIndexWriter(append)
     val schema = new NGSchema("schema", schemaFile, schemaEncoding)
-    val reader = Source.fromFile(pipeFile, pipeEncoding)
+    val codec = pipeEncoding.toLowerCase match {
+      case "iso8859-1" => Codec.ISO8859
+      case _           => Codec.UTF8
+    }
+    val codAction = CodingErrorAction.REPLACE
+    val decoder = codec.decoder.onMalformedInput(codAction)
+    val reader = Source.fromFile(pipeFile)(decoder)
 
     reader.getLines().zipWithIndex.foreach {
       case (line,idx) =>
         if (idx % 10000 == 0) println(s"+++$idx")
-        NGrams.indexDocument(index, writer, schema, line)
+        try {
+          NGrams.indexDocument(index, writer, schema, line)
+        } catch {
+          case ex:Exception =>
+            Console.err.println(s"Skipping line [$line] => ${ex.getMessage()}")
+        }
     }
 
     writer.flush()
