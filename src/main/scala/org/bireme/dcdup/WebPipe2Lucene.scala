@@ -70,11 +70,12 @@ object WebPipe2Lucene extends App {
 
     if (resIndex) resetIndex(deDupBaseUrl, indexName)
 
-    val quantity = 250 // Number of documents sent to each call of DeDup service
+    val quantity = 1000 // Number of documents sent to each call of DeDup service
 
     val codec = pipeFileEncoding.toLowerCase match {
-      case "iso8859-1" => Codec.ISO8859
-      case _           => Codec.UTF8
+      case "iso8859-1"  => Codec.ISO8859
+      case "iso-8859-1" => Codec.ISO8859
+      case _            => Codec.UTF8
     }
     val codAction = CodingErrorAction.REPLACE
     val decoder = codec.decoder.onMalformedInput(codAction)
@@ -114,13 +115,13 @@ object WebPipe2Lucene extends App {
     httpClient.close()
   }
 
-  /** Checks some documents via DeDup webservice to look for similar docs.
+  /** Add some documents into the index via DeDup webservice.
     *
     * @param baseUrl DeDup service url. For example: http://dedup.bireme.org/services or http://ts10vm.bireme.br:8180/services
     * @param indexName DeDup index name
     * @param schemaName DeDup data schema name. See http://dedup.bireme.org/services/schemas
-    * @param lines string having documents separated by new line character
-    * @return a json string having the duplicated documents
+    * @param lines string having piped documents separated by new line character
+    * @return a json string having the insertion status
     */
   private def rsend(baseUrl: String,
                     indexName: String,
@@ -130,11 +131,38 @@ object WebPipe2Lucene extends App {
     val burl = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
     val httpClient = HttpClientBuilder.create().build()
     val post = new HttpPost(burl + "putDocs/" + "/" + indexName + "/" + schemaName)
-    val postingString = new StringEntity(lines)
-
+    val postingString = new StringEntity(lines, "utf-8")
+//println(s"linhas=$lines")
     post.setEntity(postingString)
-    post.setHeader("Content-type", "text/plain;charset=utf-8")
+    post.setHeader("Content-type", "text/plain; charset=utf-8")
     val response = httpClient.execute(post)
+    val statusCode = response.getStatusLine.getStatusCode
+    val ret = if (statusCode == 200) {
+      val content = EntityUtils.toString(response.getEntity())
+      if (content.startsWith("ERROR:")) throw new IOException(content)
+      val respo = optimizeIndex(burl, indexName)
+      if (respo.startsWith("ERROR:")) throw new IOException(respo)
+      content
+    } else throw new IOException(s"status code:$statusCode")
+
+    httpClient.close()
+    ret
+  }
+
+  /** Optimize the new index
+    *
+    * @param baseUrl DeDup service url. For example: http://dedup.bireme.org/services or http://ts10vm.bireme.br:8180/services
+    * @param indexName DeDup index name
+    * @return "OK" if ok or "ERROR: <mess>" if not
+    */
+  private def optimizeIndex(baseUrl: String,
+                            indexName: String): String = {
+    val baseUrlTrim = baseUrl.trim
+    val burl = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
+    val httpClient = HttpClientBuilder.create().build()
+    val get = new HttpGet(burl + "optimize/" + "/" + indexName)
+    get.setHeader("Content-type", "text/plain; charset=utf-8")
+    val response = httpClient.execute(get)
     val statusCode = response.getStatusLine.getStatusCode
     val ret = if (statusCode == 200) {
       val content = EntityUtils.toString(response.getEntity())

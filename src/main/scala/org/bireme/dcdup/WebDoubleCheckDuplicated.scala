@@ -23,9 +23,8 @@ package org.bireme.dcdup
 
 import br.bireme.ngrams.{NGrams,NGIndex,NGSchema}
 
-import java.io.{File,IOException}
-import java.nio.charset.{Charset, CodingErrorAction}
-import java.nio.file.{Files,Paths}
+import java.io.{BufferedWriter, File, FileOutputStream, IOException, OutputStreamWriter}
+import java.nio.charset.CodingErrorAction
 import java.util.Calendar
 
 import org.apache.http.impl.client.HttpClientBuilder
@@ -128,8 +127,9 @@ class WebDoubleCheckDuplicated {
                  outDupFile: String,
                  outDupFileEncoding: String): Unit = {
     val codec = schemaFileEncoding.toLowerCase match {
-      case "iso8859-1" => Codec.ISO8859
-      case _           => Codec.UTF8
+      case "iso8859-1"  => Codec.ISO8859
+      case "iso-8859-1" => Codec.ISO8859
+      case _            => Codec.UTF8
     }
     val codAction = CodingErrorAction.REPLACE
     val decoder = codec.decoder.onMalformedInput(codAction)
@@ -159,15 +159,22 @@ class WebDoubleCheckDuplicated {
     val tmpIndexPath = "/tmp/" + "DCDup_" + time
     val tmpIndex = new NGIndex("tmpIndex", tmpIndexPath, false)
     val indexWriter = tmpIndex.getIndexWriter(false)
-    val codec = pipeFileEncoding.toLowerCase match {
-      case "iso8859-1" => Codec.ISO8859
-      case _           => Codec.UTF8
+    val codec1 = pipeFileEncoding.toLowerCase match {
+      case "iso8859-1"  => Codec.ISO8859
+      case "iso-8859-1" => Codec.ISO8859
+      case _            => Codec.UTF8
+    }
+    val codec2 = outDupFileEncoding.toLowerCase match {
+      case "iso8859-1"  => Codec.ISO8859
+      case "iso-8859-1" => Codec.ISO8859
+      case _            => Codec.UTF8
     }
     val codAction = CodingErrorAction.REPLACE
-    val decoder = codec.decoder.onMalformedInput(codAction)
+    val decoder = codec1.decoder.onMalformedInput(codAction)
+    val encoder = codec2.encoder.onMalformedInput(codAction)
     val src = Source.fromFile(pipeFile)(decoder)
-    val dest = Files.newBufferedWriter(Paths.get(outDupFile),
-                                       Charset.forName(outDupFileEncoding))
+    val dest = new BufferedWriter(new OutputStreamWriter(
+                 new FileOutputStream(outDupFile), encoder))
     var cur = 0
     indexWriter.commit()
 
@@ -213,15 +220,22 @@ class WebDoubleCheckDuplicated {
                   outDupFile: String,
                   outDupFileEncoding: String): Unit = {
     val quantity = 250 // Number of documents sent to each call of DeDup service
-    val codec = pipeFileEncoding.toLowerCase match {
-      case "iso8859-1" => Codec.ISO8859
-      case _           => Codec.UTF8
+    val codec1 = pipeFileEncoding.toLowerCase match {
+      case "iso8859-1"  => Codec.ISO8859
+      case "iso-8859-1" => Codec.ISO8859
+      case _            => Codec.UTF8
+    }
+     val codec2 = outDupFileEncoding.toLowerCase match {
+      case "iso8859-1"  => Codec.ISO8859
+      case "iso-8859-1" => Codec.ISO8859
+      case _            => Codec.UTF8
     }
     val codAction = CodingErrorAction.REPLACE
-    val decoder = codec.decoder.onMalformedInput(codAction)
+    val decoder = codec1.decoder.onMalformedInput(codAction)
+    val encoder = codec2.encoder.onMalformedInput(codAction)
     val src = Source.fromFile(pipeFile)(decoder)
-    val dest = Files.newBufferedWriter(Paths.get(outDupFile),
-                                       Charset.forName(outDupFileEncoding))
+    val dest = new BufferedWriter(new OutputStreamWriter(
+                 new FileOutputStream(outDupFile), encoder))
     val isUtf8 = outDupFileEncoding.trim.toLowerCase.equals("utf-8")
     val undefined = 150.toChar
     var cur = 0
@@ -274,9 +288,19 @@ class WebDoubleCheckDuplicated {
     val statusCode = response.getStatusLine.getStatusCode
     val ret = if (statusCode == 200) {
       val content = EntityUtils.toString(response.getEntity(), "utf-8").trim()
-      if (content.startsWith("ERROR:")) throw new IOException("lines=" + lines +
-        "\nexplanation=" + content)
-      content
+      if (content.startsWith("ERROR:")) {
+        val split = lines.split(" *\n *").map(_.trim).filter(!_.isEmpty)
+        split.size match {
+          case 0 => ""
+          case 1 =>
+            System.err.println("Skipping line: " + split.head)
+            ""
+          case _ =>
+            split.foldLeft("") {
+              case (str, line) => str + rcheck(baseUrl, indexName, schemaName, line)
+            }
+        }
+      } else content
     } else throw new IOException(s"http post response code:$statusCode")
 
     httpClient.close()
@@ -302,15 +326,22 @@ class WebDoubleCheckDuplicated {
                                outDupFileEncoding: String): Unit = {
     val ids = getIds(outDupFile1, outDupFileEncoding, allowSameId = false) ++
               getIds(outDupFile2, outDupFileEncoding, onlyFirstId = true)
-    val codec = pipeFileEncoding.toLowerCase match {
-      case "iso8859-1" => Codec.ISO8859
-      case _           => Codec.UTF8
+    val codec1 = pipeFileEncoding.toLowerCase match {
+      case "iso8859-1"  => Codec.ISO8859
+      case "iso-8859-1" => Codec.ISO8859
+      case _            => Codec.UTF8
+    }
+    val codec2 = outDupFileEncoding.toLowerCase match {
+      case "iso8859-1"  => Codec.ISO8859
+      case "iso-8859-1" => Codec.ISO8859
+      case _            => Codec.UTF8
     }
     val codAction = CodingErrorAction.REPLACE
-    val decoder = codec.decoder.onMalformedInput(codAction)
+    val decoder = codec1.decoder.onMalformedInput(codAction)
+    val encoder = codec2.encoder.onMalformedInput(codAction)
     val in = Source.fromFile(pipeFile)(decoder)
-    val out = Files.newBufferedWriter(Paths.get(outNoDupFile),
-                                      Charset.forName(pipeFileEncoding))
+    val out = new BufferedWriter(new OutputStreamWriter(
+                 new FileOutputStream(outNoDupFile), encoder))
     var first = true
 
     in.getLines().foreach(
@@ -343,8 +374,9 @@ class WebDoubleCheckDuplicated {
                      onlyFirstId: Boolean = false,
                      allowSameId: Boolean = false): Set[String] = {
     val codec = outDupFileEncoding.toLowerCase match {
-      case "iso8859-1" => Codec.ISO8859
-      case _           => Codec.UTF8
+      case "iso8859-1"  => Codec.ISO8859
+      case "iso-8859-1" => Codec.ISO8859
+      case _            => Codec.UTF8
     }
     val codAction = CodingErrorAction.REPLACE
     val decoder = codec.decoder.onMalformedInput(codAction)

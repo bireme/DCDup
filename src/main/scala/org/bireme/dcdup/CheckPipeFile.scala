@@ -23,9 +23,8 @@ package org.bireme.dcdup
 
 import io.circe.parser._
 
-import java.io.{BufferedWriter, IOException}
-import java.nio.charset.{Charset, CodingErrorAction, MalformedInputException}
-import java.nio.file.{Files,Paths}
+import java.io.{BufferedWriter, FileOutputStream, IOException, OutputStreamWriter}
+import java.nio.charset.{CodingErrorAction, MalformedInputException}
 
 import scala.collection.immutable.TreeMap
 import scala.io._
@@ -39,8 +38,8 @@ import scala.util.{Try, Success, Failure}
   */
 object CheckPipeFile extends App {
   private def usage(): Unit = {
-    System.err.println("Check an input piped file against a local Ngrams schema" +
-      "\nfile or against a remote schema file in a DeDup server." +
+    System.err.println("Check an input piped file against a remote Ngrams schema" +
+      " file in a DeDup server." +
       "\n\nusage: CheckPipeFile" +
       "\n\t-pipe=<pipeFile> - input piped file" +
       "\n\t[-pipeEncoding=<encoding>] - piped file encoding. Default is utf-8" +
@@ -76,7 +75,7 @@ object CheckPipeFile extends App {
     case Failure(e) => e match {
       case _: MalformedInputException =>
         println(s"==> The encoding[$encoding] specified as '-pipeEncoding' " +
-          "parameter seems not to be the same as the pipe file.")
+          "parameter seems not toimport java.io.{BufferedWriter, File, FileOutputStream, IOException, OutputStreamWriter} be the same as the pipe file.")
       case _ => throw(e)
     }
   }
@@ -103,19 +102,22 @@ object VerifyPipeFile {
             good: String,
             bad: String): (Int, Int) = {
     val codec = encoding.toLowerCase match {
-      case "iso8859-1" => Codec.ISO8859
-      case _           => Codec.UTF8
+      case "iso8859-1"  => Codec.ISO8859
+      case "iso-8859-1" => Codec.ISO8859
+      case _            => Codec.UTF8
     }
     val codAction = CodingErrorAction.REPLACE
     val decoder = codec.decoder.onMalformedInput(codAction)
+    val encoder1 = codec.encoder.onMalformedInput(codAction)
+    val encoder2 = codec.encoder.onMalformedInput(codAction)
     val reader = Source.fromFile(pipe)(decoder)
     val lines = reader.getLines()
     val source = Source.fromURL(schemaUrl, "utf-8")
     val schema = source.getLines().mkString(" ")
-    val goodWriter = Files.newBufferedWriter(Paths.get(good),
-                                             Charset.forName(encoding))
-    val badWriter = Files.newBufferedWriter(Paths.get(bad),
-                                            Charset.forName(encoding))
+    val goodWriter = new BufferedWriter(new OutputStreamWriter(
+                 new FileOutputStream(good), encoder1))
+    val badWriter = new BufferedWriter(new OutputStreamWriter(
+                 new FileOutputStream(bad), encoder2))
     val (goodDocs, badDocs) = checkRaw(lines, schema, goodWriter, badWriter)
 
     reader.close()

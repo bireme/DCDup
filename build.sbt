@@ -11,9 +11,9 @@ lazy val root = (project in file(".")).
   )
 
 val commonsLangVersion = "3.7"
-val commonsTextVersion = "1.3"
-val luceneVersion = "7.3.0" //"7.1.0"
-val jacksonVersion = "2.9.5" // "2.9.2"
+val commonsTextVersion = "1.4" //"1.3"
+val luceneVersion = "7.4.0" //"7.3.1"
+val jacksonVersion = "2.9.6" //"2.9.5"
 val httpClientVersion = "4.5.5" //"4.5.3"
 val mySQLVersion = "8.0.11" // "8.0.8-dmr"
 val logBackVersion = "1.2.3"
