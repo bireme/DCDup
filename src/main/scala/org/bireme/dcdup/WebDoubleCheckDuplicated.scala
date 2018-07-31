@@ -23,8 +23,9 @@ package org.bireme.dcdup
 
 import br.bireme.ngrams.{NGrams,NGIndex,NGSchema}
 
-import java.io.{BufferedWriter, File, FileOutputStream, IOException, OutputStreamWriter}
-import java.nio.charset.CodingErrorAction
+import java.io.{BufferedWriter, File, FileOutputStream, IOException,
+                OutputStreamWriter}
+import java.nio.charset.{Charset, CodingErrorAction}
 import java.util.Calendar
 
 import org.apache.http.impl.client.HttpClientBuilder
@@ -32,7 +33,7 @@ import org.apache.http.client.methods.{HttpGet,HttpPost}
 import org.apache.http.entity.StringEntity
 import org.apache.http.util.EntityUtils
 
-import scala.io.{Codec, Source}
+import scala.io.Source
 import scala.collection.JavaConverters._
 
 /** Checks a DeDup input piped file against itself to look for duplicated
@@ -77,22 +78,12 @@ class WebDoubleCheckDuplicated {
   def doubleCheck(pipeFile: String,
                   pipeFileEncoding: String,
                   deDupBaseUrl: String,     // http://ts10vm.bireme.br:8180/DeDup/services/ or http://dedup.bireme.org/services
-                  indexName: String,
+                  indexName: String,        // Verifying pipe file integrity
                   schemaName: String,       // used in DeDup service
                   outDupFile1: String,
                   outDupFile2: String,
                   outNoDupFile: String,
                   outDupFileEncoding: String): Unit = {
-    // Verifying pipe file integrity
-    println("\nVerifying pipe file integrity")
-    val goodFileName = File.createTempFile("good", "").getPath()
-    val badFileName = File.createTempFile("bad", "").getPath()
-    val (good,bad) = VerifyPipeFile.check(pipeFile, pipeFileEncoding,
-      deDupBaseUrl + "/schema/" + schemaName, goodFileName, badFileName)
-
-    println(s"Checking duplicates for $good documents")
-    if (bad > 0) println(s"Skipping $bad documents. See file: $badFileName")
-
     val schemaStr = loadSchema(deDupBaseUrl, schemaName)
 //println(s"[$schemaStr]")
     val ngSchema = new NGSchema(schemaName, schemaStr)
@@ -101,6 +92,8 @@ class WebDoubleCheckDuplicated {
     println("\nSelf check")
     localCheck(ngSchema, pipeFile, pipeFileEncoding, outDupFile1,
                                                              outDupFileEncoding)
+    //createReport(outDupFile1, outDupFileEncoding)
+
     // Check using DeDup service
     println("\nRemote check")
     remoteCheck(deDupBaseUrl, indexName, schemaName, pipeFile, pipeFileEncoding,
@@ -126,13 +119,10 @@ class WebDoubleCheckDuplicated {
                  pipeFileEncoding: String,
                  outDupFile: String,
                  outDupFileEncoding: String): Unit = {
-    val codec = schemaFileEncoding.toLowerCase match {
-      case "iso8859-1"  => Codec.ISO8859
-      case "iso-8859-1" => Codec.ISO8859
-      case _            => Codec.UTF8
-    }
     val codAction = CodingErrorAction.REPLACE
-    val decoder = codec.decoder.onMalformedInput(codAction)
+    val decoder = Charset.forName(schemaFileEncoding).newDecoder()
+                  .onMalformedInput(codAction)
+                  .onUnmappableCharacter(codAction)
     val src = Source.fromFile(schemaFile)(decoder)
     val schemaStr = src.getLines().mkString("\n")
     src.close()
@@ -141,8 +131,8 @@ class WebDoubleCheckDuplicated {
     localCheck(ngSchema, pipeFile, pipeFileEncoding, outDupFile, outDupFileEncoding)
   }
 
-  /** Given an input piped file and a NGrams index, looks for documents that
-    * are in the input file that are similar to the ones stored in the index.
+  /** Given an input piped file and a NGrams cheam file, looks for documents that
+    * are duplicated in the input file.
     *
     * @param ngSchema NGrams index/search configuration file
     * @param pipeFile input piped file used to look for similar docs
@@ -159,19 +149,13 @@ class WebDoubleCheckDuplicated {
     val tmpIndexPath = "/tmp/" + "DCDup_" + time
     val tmpIndex = new NGIndex("tmpIndex", tmpIndexPath, false)
     val indexWriter = tmpIndex.getIndexWriter(false)
-    val codec1 = pipeFileEncoding.toLowerCase match {
-      case "iso8859-1"  => Codec.ISO8859
-      case "iso-8859-1" => Codec.ISO8859
-      case _            => Codec.UTF8
-    }
-    val codec2 = outDupFileEncoding.toLowerCase match {
-      case "iso8859-1"  => Codec.ISO8859
-      case "iso-8859-1" => Codec.ISO8859
-      case _            => Codec.UTF8
-    }
     val codAction = CodingErrorAction.REPLACE
-    val decoder = codec1.decoder.onMalformedInput(codAction)
-    val encoder = codec2.encoder.onMalformedInput(codAction)
+    val encoder = Charset.forName(outDupFileEncoding).newEncoder()
+                  .onMalformedInput(codAction)
+                  .onUnmappableCharacter(codAction)
+    val decoder = Charset.forName(pipeFileEncoding).newDecoder()
+                  .onMalformedInput(codAction)
+                  .onUnmappableCharacter(codAction)
     val src = Source.fromFile(pipeFile)(decoder)
     val dest = new BufferedWriter(new OutputStreamWriter(
                  new FileOutputStream(outDupFile), encoder))
@@ -180,11 +164,12 @@ class WebDoubleCheckDuplicated {
 
     src.getLines().foreach(line =>
       if (!line.trim().isEmpty) {
-        //println("line=" + line + "\n")
         NGrams.search(tmpIndex, ngSchema, line, false).asScala.foreach {
           case line2 =>
-            if (cur > 0) dest.write("\n")
-            dest.write(line2)
+            if (!isSameId(line2)) {
+              if (cur > 0) dest.write("\n")
+              dest.write(line2)
+            }
         }
         NGrams.indexDocument(tmpIndex, indexWriter, ngSchema, line)
         indexWriter.commit()
@@ -198,6 +183,19 @@ class WebDoubleCheckDuplicated {
 
     // Delete temporary files
     deleteFile(new File(tmpIndexPath))
+  }
+
+  /** Given an output check line, verify if both duplicated documents have then
+    * the same id.
+    *
+    * @param line output check line
+    * @return true if the documents have the same id or false otherwise
+    */
+  private def isSameId(line: String): Boolean = {
+    val split = line.split("\\|")
+
+    if (split.size >= 6) (split(2) == split(3))
+    else false
   }
 
   /** Given an input piped file and a NGrams index, looks for documents that
@@ -220,24 +218,16 @@ class WebDoubleCheckDuplicated {
                   outDupFile: String,
                   outDupFileEncoding: String): Unit = {
     val quantity = 250 // Number of documents sent to each call of DeDup service
-    val codec1 = pipeFileEncoding.toLowerCase match {
-      case "iso8859-1"  => Codec.ISO8859
-      case "iso-8859-1" => Codec.ISO8859
-      case _            => Codec.UTF8
-    }
-     val codec2 = outDupFileEncoding.toLowerCase match {
-      case "iso8859-1"  => Codec.ISO8859
-      case "iso-8859-1" => Codec.ISO8859
-      case _            => Codec.UTF8
-    }
     val codAction = CodingErrorAction.REPLACE
-    val decoder = codec1.decoder.onMalformedInput(codAction)
-    val encoder = codec2.encoder.onMalformedInput(codAction)
+    val encoder = Charset.forName(outDupFileEncoding).newEncoder()
+                  .onMalformedInput(codAction)
+                  .onUnmappableCharacter(codAction)
+    val decoder = Charset.forName(pipeFileEncoding).newDecoder()
+                  .onMalformedInput(codAction)
+                  .onUnmappableCharacter(codAction)
     val src = Source.fromFile(pipeFile)(decoder)
     val dest = new BufferedWriter(new OutputStreamWriter(
                  new FileOutputStream(outDupFile), encoder))
-    val isUtf8 = outDupFileEncoding.trim.toLowerCase.equals("utf-8")
-    val undefined = 150.toChar
     var cur = 0
 
     new LineBatchIterator(src.getLines(), quantity).foreach {
@@ -246,22 +236,13 @@ class WebDoubleCheckDuplicated {
         val remote = rcheck(deDupBaseUrl, indexName, schemaName, batch)
         if (!remote.isEmpty) {
           if (cur != 0) dest.write("\n")
-          if (isUtf8) dest.write(remote)
-          else {
-            val cleanedRemote =  remote.map {
-              ch =>
-                val chi = ch.toInt
-                if (chi < 256) ch else undefined
-            }
-            dest.write(cleanedRemote)
-          }
+          dest.write(remote)
         }
         cur += quantity
     }
     src.close()
     dest.close()
   }
-
 
   /** Checks some documents via DeDup webservice to look for similar docs.
     *
@@ -289,6 +270,7 @@ class WebDoubleCheckDuplicated {
     val ret = if (statusCode == 200) {
       val content = EntityUtils.toString(response.getEntity(), "utf-8").trim()
       if (content.startsWith("ERROR:")) {
+//println(s"content=[$content] lines=[$lines]")
         val split = lines.split(" *\n *").map(_.trim).filter(!_.isEmpty)
         split.size match {
           case 0 => ""
@@ -326,19 +308,13 @@ class WebDoubleCheckDuplicated {
                                outDupFileEncoding: String): Unit = {
     val ids = getIds(outDupFile1, outDupFileEncoding, allowSameId = false) ++
               getIds(outDupFile2, outDupFileEncoding, onlyFirstId = true)
-    val codec1 = pipeFileEncoding.toLowerCase match {
-      case "iso8859-1"  => Codec.ISO8859
-      case "iso-8859-1" => Codec.ISO8859
-      case _            => Codec.UTF8
-    }
-    val codec2 = outDupFileEncoding.toLowerCase match {
-      case "iso8859-1"  => Codec.ISO8859
-      case "iso-8859-1" => Codec.ISO8859
-      case _            => Codec.UTF8
-    }
     val codAction = CodingErrorAction.REPLACE
-    val decoder = codec1.decoder.onMalformedInput(codAction)
-    val encoder = codec2.encoder.onMalformedInput(codAction)
+    val encoder = Charset.forName(outDupFileEncoding).newEncoder()
+                  .onMalformedInput(codAction)
+                  .onUnmappableCharacter(codAction)
+    val decoder = Charset.forName(pipeFileEncoding).newDecoder()
+                  .onMalformedInput(codAction)
+                  .onUnmappableCharacter(codAction)
     val in = Source.fromFile(pipeFile)(decoder)
     val out = new BufferedWriter(new OutputStreamWriter(
                  new FileOutputStream(outNoDupFile), encoder))
@@ -373,13 +349,10 @@ class WebDoubleCheckDuplicated {
                      dropLines: Int = 0,
                      onlyFirstId: Boolean = false,
                      allowSameId: Boolean = false): Set[String] = {
-    val codec = outDupFileEncoding.toLowerCase match {
-      case "iso8859-1"  => Codec.ISO8859
-      case "iso-8859-1" => Codec.ISO8859
-      case _            => Codec.UTF8
-    }
     val codAction = CodingErrorAction.REPLACE
-    val decoder = codec.decoder.onMalformedInput(codAction)
+    val decoder = Charset.forName(outDupFileEncoding).newDecoder()
+                  .onMalformedInput(codAction)
+                  .onUnmappableCharacter(codAction)
     val reader = Source.fromFile(outDupFile)(decoder)
     val in = reader.getLines()
 

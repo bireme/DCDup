@@ -70,16 +70,8 @@ object TestIndex extends App {
   private def badDocument(doc: Document,
                           fields: Map[String, Field]): Boolean = {
     fields.values.exists {
-      field => !checkContentPresence(doc, field) ||
-               !checkRequiredField(doc, field)
+      field => !checkRequiredField(doc, field)
     }
-  }
-
-  private def checkContentPresence(doc: Document,
-                                   field: Field): Boolean = {
-    ((doc.get(field.name) != null) &&
-     (doc.get(field.name + "~notnormalized") != null)) ||
-    (field.presence != Field.Status.REQUIRED)
   }
 
   private def checkRequiredField(doc: Document,

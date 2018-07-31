@@ -22,9 +22,9 @@
 package org.bireme.dcdup
 
 import java.io.{File, IOException}
-import java.nio.charset.CodingErrorAction
+import java.nio.charset.{Charset, CodingErrorAction}
 
-import scala.io.{Codec, Source}
+import scala.io.Source
 
 import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.client.methods.{HttpGet, HttpPost}
@@ -71,20 +71,16 @@ object WebPipe2Lucene extends App {
     if (resIndex) resetIndex(deDupBaseUrl, indexName)
 
     val quantity = 1000 // Number of documents sent to each call of DeDup service
-
-    val codec = pipeFileEncoding.toLowerCase match {
-      case "iso8859-1"  => Codec.ISO8859
-      case "iso-8859-1" => Codec.ISO8859
-      case _            => Codec.UTF8
-    }
     val codAction = CodingErrorAction.REPLACE
-    val decoder = codec.decoder.onMalformedInput(codAction)
+    val decoder = Charset.forName(pipeFileEncoding).newDecoder()
+                  .onMalformedInput(codAction)
+                  .onUnmappableCharacter(codAction)
     val src = Source.fromFile(pipeFile)(decoder)
     var cur = 0
 
     new LineBatchIterator(src.getLines(), quantity).foreach {
-      batch =>
         println(s"<<< $cur")
+        batch =>
         rsend(deDupBaseUrl, indexName, schemaName, batch)
         cur += quantity
     }

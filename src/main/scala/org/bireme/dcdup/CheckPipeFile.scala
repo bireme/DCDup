@@ -24,7 +24,7 @@ package org.bireme.dcdup
 import io.circe.parser._
 
 import java.io.{BufferedWriter, FileOutputStream, IOException, OutputStreamWriter}
-import java.nio.charset.{CodingErrorAction, MalformedInputException}
+import java.nio.charset.{Charset, CodingErrorAction, MalformedInputException}
 
 import scala.collection.immutable.TreeMap
 import scala.io._
@@ -101,15 +101,16 @@ object VerifyPipeFile {
             schemaUrl: String,
             good: String,
             bad: String): (Int, Int) = {
-    val codec = encoding.toLowerCase match {
-      case "iso8859-1"  => Codec.ISO8859
-      case "iso-8859-1" => Codec.ISO8859
-      case _            => Codec.UTF8
-    }
     val codAction = CodingErrorAction.REPLACE
-    val decoder = codec.decoder.onMalformedInput(codAction)
-    val encoder1 = codec.encoder.onMalformedInput(codAction)
-    val encoder2 = codec.encoder.onMalformedInput(codAction)
+    val encoder1 = Charset.forName(encoding).newEncoder()
+                  .onMalformedInput(codAction)
+                  .onUnmappableCharacter(codAction)
+    val encoder2 = Charset.forName(encoding).newEncoder()
+                  .onMalformedInput(codAction)
+                  .onUnmappableCharacter(codAction)
+    val decoder = Charset.forName(encoding).newDecoder()
+                  .onMalformedInput(codAction)
+                  .onUnmappableCharacter(codAction)
     val reader = Source.fromFile(pipe)(decoder)
     val lines = reader.getLines()
     val source = Source.fromURL(schemaUrl, "utf-8")
