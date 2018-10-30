@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   organization := "br.bireme",
   version := "0.1.0",
-  scalaVersion := "2.12.6" //"2.12.4"
+  scalaVersion := "2.12.7" //"2.12.4"
 )
 
 lazy val root = (project in file(".")).
@@ -10,14 +10,14 @@ lazy val root = (project in file(".")).
     name := "DCDup"
   )
 
-val commonsLangVersion = "3.7"
-val commonsTextVersion = "1.4" //"1.3"
-val luceneVersion = "7.4.0" //"7.3.1"
-val jacksonVersion = "2.9.6" //"2.9.5"
-val httpClientVersion = "4.5.5" //"4.5.3"
-val mySQLVersion = "8.0.11" // "8.0.8-dmr"
+val commonsLangVersion = "3.8.1" // "3.7"
+val commonsTextVersion = "1.6" // "1.4"
+val luceneVersion = "7.5.0" // "7.4.0"
+val jacksonVersion = "2.9.7" // "2.9.6"
+val httpClientVersion = "4.5.6" // "4.5.5"
+val mySQLVersion = "8.0.13" // "8.0.11"
 val logBackVersion = "1.2.3"
-val circeParserVersion = "0.9.3" //"0.8.0"
+val circeParserVersion = "0.10.0" // "0.9.3"
 val scalaTestVersion = "3.0.5"
 val hairyfotrVersion = "0.1.17"
 
