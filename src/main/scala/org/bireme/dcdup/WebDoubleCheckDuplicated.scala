@@ -157,7 +157,7 @@ class WebDoubleCheckDuplicated {
               dest.write(line2)
             }
         }
-        NGrams.indexDocument(tmpIndex, indexWriter, ngSchema, line)
+        NGrams.indexDocument(tmpIndex, indexWriter, ngSchema, line, true)
         indexWriter.commit()
         if (cur % 1000 == 0) println(s"<<< $cur")
         cur += 1

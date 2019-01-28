@@ -15,6 +15,7 @@ val commonsTextVersion = "1.6" // "1.4"
 val luceneVersion = "7.5.0" // "7.4.0"
 val jacksonVersion = "2.9.7" // "2.9.6"
 val httpClientVersion = "4.5.6" // "4.5.5"
+val scalajHttpVersion = "2.4.1"
 val mySQLVersion = "8.0.13" // "8.0.11"
 val logBackVersion = "1.2.3"
 val circeParserVersion = "0.10.0" // "0.9.3"
@@ -33,6 +34,7 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
   "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
   "org.apache.httpcomponents" % "httpclient" % httpClientVersion,
+  "org.scalaj" %% "scalaj-http" % scalajHttpVersion,
   "mysql" % "mysql-connector-java" % mySQLVersion,
   "ch.qos.logback" % "logback-classic" % logBackVersion,
   "io.circe" % "circe-parser_2.12" % circeParserVersion,

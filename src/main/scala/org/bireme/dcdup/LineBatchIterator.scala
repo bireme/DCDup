@@ -36,9 +36,7 @@ class LineBatchIterator(iterator: Iterator[String],
       getLines(iterator,
                remLines - 1,
                lines + (
-                          if (ignoreWhiteLines)
-                            if (line.isEmpty) ""
-                            else if (first) line else s"\n$line"
+                          if ((ignoreWhiteLines) && (line.isEmpty)) ""
                           else if (first) line else s"\n$line"
                         ),
                 false
