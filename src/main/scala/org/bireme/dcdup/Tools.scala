@@ -8,7 +8,7 @@
 package org.bireme.dcdup
 
 import java.nio.charset.Charset
-import java.util.Arrays
+import java.util
 
 object Tools {
   def isUtf8Encoding(text: String): Boolean = {
@@ -18,6 +18,6 @@ object Tools {
     val b1 = text.getBytes(utf8)
     val b2 = new String(b1, utf8).getBytes(utf8)
 
-    Arrays.equals(b1, b2)
+    util.Arrays.equals(b1, b2)
   }
 }

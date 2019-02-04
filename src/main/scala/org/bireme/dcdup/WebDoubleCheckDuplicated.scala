@@ -131,7 +131,7 @@ class WebDoubleCheckDuplicated {
                  pipeFileEncoding: String,
                  outDupFile: String,
                  outDupFileEncoding: String): Unit = {
-    val time = Calendar.getInstance().getTimeInMillis().toString
+    val time = Calendar.getInstance().getTimeInMillis.toString
     val tmpIndexPath = "/tmp/" + "DCDup_" + time
     val tmpIndex = new NGIndex("tmpIndex", tmpIndexPath, false)
     val indexWriter = tmpIndex.getIndexWriter(false)
@@ -151,7 +151,7 @@ class WebDoubleCheckDuplicated {
     src.getLines().foreach(line =>
       if (!line.trim().isEmpty) {
         NGrams.search(tmpIndex, ngSchema, line, false).asScala.foreach {
-          case line2 =>
+          line2 =>
             if (!isSameId(line2)) {
               if (cur > 0) dest.write("\n")
               dest.write(line2)
@@ -180,7 +180,7 @@ class WebDoubleCheckDuplicated {
   private def isSameId(line: String): Boolean = {
     val split = line.split("\\|")
 
-    if (split.size >= 6) (split(2) == split(3))
+    if (split.size >= 6) split(2) == split(3)
     else false
   }
 
@@ -254,11 +254,11 @@ class WebDoubleCheckDuplicated {
     val response = httpClient.execute(post)
     val statusCode = response.getStatusLine.getStatusCode
     val ret = if (statusCode == 200) {
-      val content = EntityUtils.toString(response.getEntity(), "utf-8").trim()
+      val content = EntityUtils.toString(response.getEntity, "utf-8").trim()
       if (content.startsWith("ERROR:")) {
 //println(s"content=[$content] lines=[$lines]")
         val split = lines.split(" *\n *").map(_.trim).filter(!_.isEmpty)
-        split.size match {
+        split.length match {
           case 0 => ""
           case 1 =>
             System.err.println("Skipping line: " + split.head)
@@ -292,7 +292,7 @@ class WebDoubleCheckDuplicated {
                                outDupFile2: String,
                                outNoDupFile: String,
                                outDupFileEncoding: String): Unit = {
-    val ids = getIds(outDupFile1, outDupFileEncoding, allowSameId = false) ++
+    val ids = getIds(outDupFile1, outDupFileEncoding) ++
               getIds(outDupFile2, outDupFileEncoding, onlyFirstId = true)
     val codAction = CodingErrorAction.REPLACE
     val encoder = Charset.forName(outDupFileEncoding).newEncoder()
@@ -349,8 +349,8 @@ class WebDoubleCheckDuplicated {
       case (set, line) => getSimIdsFromLine(line) match {
         case Some((id1,id2)) =>
           if (onlyFirstId) set + id1
-          else if (allowSameId) (set + (id1, id2))
-          else if (id1.equals(id2)) set else (set + (id1, id2))
+          else if (allowSameId) set + (id1, id2)
+          else if (id1.equals(id2) && !allowSameId) set else set + (id1, id2)
         case None => set
       }
     }
@@ -395,15 +395,14 @@ class WebDoubleCheckDuplicated {
     */
   private def deleteFile(file: File): Unit = {
     val contents = file.listFiles()
-    if (contents != null) contents.foreach(deleteFile(_))
+    if (contents != null) contents.foreach(deleteFile)
     file.delete()
   }
 
   /**
     * Loads a schema file from the DeDup server
     *
-    * @param deDupBaseUrl url to DeDup webservice, usually http://dedup.bireme.org/services
-    * @param indexName DeDup index name used to look for duplicates. See http://dedup.bireme.org/services/indexes
+    * @param baseUrl url to DeDup webservice, usually http://dedup.bireme.org/services
     * @param schemaName DeDup data schema name. See http://dedup.bireme.org/services/schemas
     * @return the schema as a String
     */
@@ -419,7 +418,7 @@ class WebDoubleCheckDuplicated {
     val response = httpClient.execute(get)
     val statusCode = response.getStatusLine.getStatusCode
     val ret = if (statusCode == 200) {
-      val content = EntityUtils.toString(response.getEntity())
+      val content = EntityUtils.toString(response.getEntity)
       if (content.startsWith("ERROR:")) throw new IOException(content)
       content
     } else throw new IOException(s"url=$schemaUrl statusCode=$statusCode")

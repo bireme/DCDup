@@ -25,9 +25,9 @@ object LocalCheckDuplicated extends App {
     System.exit(1)
   }
 
-  if (args.size < 5) usage()
+  if (args.length < 5) usage()
 
-  val outEncoding = if (args.size > 5) args(5) else "utf-8"
+  val outEncoding = if (args.length > 5) args(5) else "utf-8"
 
   val dup = new WebDoubleCheckDuplicated()
   dup.localCheck(args(0), args(1), args(2), args(3), args(4), outEncoding)

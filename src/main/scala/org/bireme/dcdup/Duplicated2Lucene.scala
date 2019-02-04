@@ -34,11 +34,10 @@ object Duplicated2Lucene extends App {
   if (args.length < 4) usage()
 
   val parameters = args.foldLeft[Map[String,String]](Map()) {
-    case (map,par) => {
+    case (map,par) =>
       val split = par.split(" *= *", 2)
       if (split.length == 1) map + ((split(0).substring(2), ""))
       else map + ((split(0).substring(1), split(1)))
-    }
   }
 
   val pipeFile = parameters("pipeFile")
@@ -53,7 +52,7 @@ object Duplicated2Lucene extends App {
   val noDupPipeFile = genNoDupFile(pipeFile, pipeFileEncoding, denied)
   val p2l = new Pipe2Lucene()
   p2l.toLucene(indexPath, schemaFile, schemaFileEncoding, noDupPipeFile,
-                 "utf-8", false)
+                 "utf-8", append = false)
 
   new File(noDupPipeFile).delete()
 
@@ -77,7 +76,7 @@ object Duplicated2Lucene extends App {
     val set = dsrc.getLines.foldLeft[Set[Int]](Set()) {
       case (set1,line) =>
         val tline = line.trim()
-        if (!tline.isEmpty()) {
+        if (!tline.isEmpty) {
           val split = tline.split("\\|")
           if (split.size >= 4) {
             val v1 = split(2).toInt
@@ -114,7 +113,7 @@ object Duplicated2Lucene extends App {
     src.getLines().foreach {
       line =>
         val tline = line.trim()
-        if (!tline.isEmpty()) {
+        if (!tline.isEmpty) {
           val split = tline.split("\\|", 3)
           if (split.size >= 3) {
             val v1 = split(1).toInt
@@ -125,6 +124,6 @@ object Duplicated2Lucene extends App {
 
     writer.close()
     src.close()
-    tmpFile.toString()
+    tmpFile.toString
   }
 }

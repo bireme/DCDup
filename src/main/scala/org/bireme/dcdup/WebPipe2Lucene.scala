@@ -35,7 +35,7 @@ object WebPipe2Lucene extends App {
 
   if (args.length < 5) usage()
 
-  val resetIndex = ((args.length > 5) && (args(5).equals("--resetIndex")))
+  val resetIndex = (args.length > 5) && args(5).equals("--resetIndex")
 
   convert(args(0), args(1), args(2), args(3), args(4), resetIndex)
 
@@ -47,8 +47,8 @@ object WebPipe2Lucene extends App {
               resIndex: Boolean): Unit = {
     // Verifying pipe file integrity
     println("\nVerifying pipe file integrity")
-    val goodFileName = File.createTempFile("good", "").getPath()
-    val badFileName = File.createTempFile("bad", "").getPath()
+    val goodFileName = File.createTempFile("good", "").getPath
+    val badFileName = File.createTempFile("bad", "").getPath
     val (good,bad) = VerifyPipeFile.check(pipeFile, pipeFileEncoding,
       deDupBaseUrl + "/schema/" + schemaName, goodFileName, badFileName)
     println(s"Using $good documents")
@@ -90,7 +90,7 @@ object WebPipe2Lucene extends App {
     val statusCode = response.getStatusLine.getStatusCode
 
     if (statusCode == 200) {
-      val content = EntityUtils.toString(response.getEntity())
+      val content = EntityUtils.toString(response.getEntity)
       if (content.startsWith("ERROR:")) throw new IOException(content)
     } else throw new IOException(s"status code:$statusCode")
 
@@ -120,7 +120,7 @@ object WebPipe2Lucene extends App {
     val response = httpClient.execute(post)
     val statusCode = response.getStatusLine.getStatusCode
     val ret = if (statusCode == 200) {
-      val content = EntityUtils.toString(response.getEntity())
+      val content = EntityUtils.toString(response.getEntity)
       if (content.startsWith("ERROR:")) throw new IOException(content)
       val respo = optimizeIndex(burl, indexName)
       if (respo.startsWith("ERROR:")) throw new IOException(respo)
@@ -147,7 +147,7 @@ object WebPipe2Lucene extends App {
     val response = httpClient.execute(get)
     val statusCode = response.getStatusLine.getStatusCode
     val ret = if (statusCode == 200) {
-      val content = EntityUtils.toString(response.getEntity())
+      val content = EntityUtils.toString(response.getEntity)
       if (content.startsWith("ERROR:")) throw new IOException(content)
       content
     } else throw new IOException(s"status code:$statusCode")

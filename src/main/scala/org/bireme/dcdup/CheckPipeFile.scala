@@ -19,7 +19,7 @@ import scala.util.{Try, Success, Failure}
 /** Check an input piped file against a local Ngrams schema file or against
   * a remote schema file in a DeDup server.
   *
-  * @author: Heitor Barbieri
+  * author: Heitor Barbieri
   * date: 20170416
   */
 object CheckPipeFile extends App {
@@ -62,7 +62,7 @@ object CheckPipeFile extends App {
       case _: MalformedInputException =>
         println(s"==> The encoding[$encoding] specified as '-pipeEncoding' " +
           "parameter seems not to input piped file encoding.")
-      case _ => throw(e)
+      case _ => throw e
     }
   }
 }

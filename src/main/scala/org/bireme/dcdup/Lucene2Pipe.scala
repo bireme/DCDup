@@ -43,7 +43,7 @@ object Lucene2Pipe extends App {
              pipeEncoding: String): Unit = {
 
     val schema = new NGSchema("schema", schemaFile, schemaEncoding)
-    val fields = mapAsScalaMap(schema.getPosNames()).toList
+    val fields = mapAsScalaMap(schema.getPosNames).toList
     val out = Files.newBufferedWriter(Paths.get(pipeFile),
                                       Charset.forName(pipeEncoding))
     val directory = FSDirectory.open(Paths.get(indexPath))
@@ -67,14 +67,13 @@ object Lucene2Pipe extends App {
                         fields: List[(Integer,String)],
                         out: Writer): Unit = {
     val pipe = fields.zipWithIndex.foldLeft[String]("") {
-      case (str, ((pos,fldName), idx)) => {
+      case (str, ((pos,fldName), idx)) =>
         val str1 = (idx until pos).foldLeft[String](str) {
           case (str2, _) => str2 + "|"
         }
         val content = doc.get(fldName + "~notnormalized")
         str1 + (if (str1.isEmpty) "" else "|") +
                               (if (content == null) "" else content)
-      }
     }
     out.write("\n")
     out.write(pipe)

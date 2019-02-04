@@ -11,13 +11,13 @@ class LineBatchIterator(iterator: Iterator[String],
                         batchSize: Int,
                         ignoreWhiteLines: Boolean = true) extends
                                                             Iterator[String] {
-  var current = getBatchLines(iterator, true)
+  var current: String = getBatchLines(iterator, first = true)
 
   override def hasNext: Boolean = !current.isEmpty
 
   override def next: String = {
     val cur = current
-    current = getBatchLines(iterator, false)
+    current = getBatchLines(iterator, first = false)
     cur
   }
 
@@ -36,10 +36,10 @@ class LineBatchIterator(iterator: Iterator[String],
       getLines(iterator,
                remLines - 1,
                lines + (
-                          if ((ignoreWhiteLines) && (line.isEmpty)) ""
+                          if (ignoreWhiteLines && line.isEmpty) ""
                           else if (first) line else s"\n$line"
                         ),
-                false
+                first = false
               )
     }
   }

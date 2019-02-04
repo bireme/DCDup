@@ -33,7 +33,7 @@ object TestIndex extends App {
            schemaFile: String,
            schemaEncoding: String): Unit = {
     val schema = new NGSchema("", schemaFile, schemaEncoding)
-    val parameters = schema.getParameters()
+    val parameters = schema.getParameters
     val fields: Map[String, Field] = parameters.getNameFields.asScala.toMap
 
     val directory = FSDirectory.open(new File(indexDir).toPath)
@@ -65,7 +65,7 @@ object TestIndex extends App {
     val reqFieldName = field.requiredField
     val recFieldContent = doc.get(reqFieldName)
 
-    (reqFieldName == null) || (reqFieldName.isEmpty) ||
+    (reqFieldName == null) || reqFieldName.isEmpty ||
     ((recFieldContent != null) && (!recFieldContent.isEmpty))
   }
 }

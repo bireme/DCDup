@@ -54,7 +54,7 @@ object DoubleCheckDuplicated extends App {
                   outDupFile2: String,
                   outNoDupFile: String,
                   outDupFileEncoding: String): Unit = {
-    val time = Calendar.getInstance().getTimeInMillis().toString
+    val time = Calendar.getInstance().getTimeInMillis.toString
     val ngSchema = new NGSchema(confFile, confFile, confFileEncoding)
     val tmpIndexPath = createTmpIndex(pipeFile, pipeFileEncoding, ngSchema, time)
     val tmpIndex = new NGIndex(tmpIndexPath, tmpIndexPath, true)
@@ -226,7 +226,7 @@ object DoubleCheckDuplicated extends App {
     */
   private def deleteFile(file: File): Unit = {
     val contents = file.listFiles()
-    if (contents != null) contents.foreach(deleteFile(_))
+    if (contents != null) contents.foreach(deleteFile)
     file.delete()
   }
 }

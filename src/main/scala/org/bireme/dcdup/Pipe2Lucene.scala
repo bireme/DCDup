@@ -33,11 +33,10 @@ object Pipe2Lucene extends App {
   if (args.length < 4) usage()
 
   val parameters = args.drop(4).foldLeft[Map[String,String]](Map()) {
-    case (map,par) => {
+    case (map,par) =>
       val split = par.split(" *= *", 2)
       if (split.length == 1) map + ((split(0).substring(2), ""))
       else map + ((split(0).substring(1), split(1)))
-    }
   }
 
   val pipeEncoding = parameters.getOrElse("encoding", "utf-8")
@@ -66,14 +65,14 @@ class Pipe2Lucene {
     val decoder = codec.decoder.onMalformedInput(codAction)
     val reader = Source.fromFile(pipeFile)(decoder)
 
-    reader.getLines().zipWithIndex.foreach {
+    reader.getLines.zipWithIndex.foreach {
       case (line,idx) =>
         if (idx % 10000 == 0) println(s"+++$idx")
         try {
           NGrams.indexDocument(index, writer, schema, line, true)
         } catch {
           case ex:Exception =>
-            Console.err.println(s"Skipping line [$line] => ${ex.getMessage()}")
+            Console.err.println(s"Skipping line [$line] => ${ex.getMessage}")
         }
     }
 

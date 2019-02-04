@@ -35,7 +35,7 @@ object Search extends App {
   if (args.length < 2) usage()
 
   val parameters = args.drop(2).foldLeft[Map[String,String]](Map()) {
-    case (map,par) => {
+    case (map,par) =>
       val split = par.split(" *= *", 2)
       if (split.length == 2)
         map + ((split(0).substring(1), split(1)))
@@ -43,7 +43,6 @@ object Search extends App {
         usage()
         map
       }
-    }
   }
 
   val count = parameters.getOrElse("count", "9999").toInt

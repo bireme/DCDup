@@ -13,14 +13,14 @@ import io.circe.parser._
 import java.io.BufferedWriter
 import java.nio.charset.{Charset, CodingErrorAction}
 import java.nio.file.{Files,Paths}
-import java.sql.{DriverManager,ResultSet,Statement}
+import java.sql.{DriverManager, ResultSet, Statement}
 
 import scala.io._
 import scala.util.Try
 
 /** Exports some MySQL records fields to a piped file.
 *
-* @author: Heitor Barbieri
+* author: Heitor Barbieri
 * date: 20170410
 */
 object MySQL2Pipe extends App {
@@ -38,7 +38,11 @@ object MySQL2Pipe extends App {
       "json elements to retrieve the content." +
       "\n\t[-repetitiveField=<name>[.<name>,...,<name>]] - the name of the fields that should be broken " +
       "into a new line when the repetitive separator symbol is found" +
-      "\n\t[-repetitiveSep=<separator>] - repetitive field string separator. Default is //@//"
+      "\n\t[-repetitiveSep=<separator>] - repetitive field string separator. Default is //@//" +
+      "\n\t[-jsonLangField=<jsonLangField>] - the json field that store the language indicator. If present it will be " +
+        "used to suffix the id field with the language" +  // _i
+      "\n\t[-idFieldName=<name>] - id field name of the mysql record]. Will be used to preffix the id with the language " +
+        "if the jsonLangField is specified"
     )
     System.exit(1)
   }
@@ -47,14 +51,13 @@ object MySQL2Pipe extends App {
 
  // Parse parameters
   val parameters = args.foldLeft[Map[String,String]](Map()) {
-    case (map,par) => {
+    case (map,par) =>
       val split = par.split(" *= *", 2)
       if (split.length == 2) map + ((split(0).substring(1), split(1)))
       else {
         usage()
         map
       }
-    }
   }
 
   val host = parameters("host")
@@ -65,10 +68,11 @@ object MySQL2Pipe extends App {
   val pipe = parameters("pipe")
   val sqlEncoding = parameters.getOrElse("sqlEncoding", "utf-8")
   val pipeEncoding = parameters.getOrElse("pipeEncoding", "utf-8")
-  val jsonField = parameters.getOrElse("jsonField", "").trim.split(" *\\, *").toSet
-  val repetitiveField = parameters.getOrElse("repetitiveField", "").trim.
-                                                          split(" *\\, *").toSet
+  val jsonField = parameters.getOrElse("jsonField", "text,_f").trim.split(" *\\, *").toSet
+  val repetitiveField = parameters.getOrElse("repetitiveField", "title").trim.split(" *\\, *").toSet
   val repetitiveSep = parameters.getOrElse("repetitiveSep", "//@//")
+  val jsonLangField = parameters.getOrElse("jsonLangField", "_i")
+  val idFieldName = parameters.getOrElse("idFieldName", "reference_ptr_id").toLowerCase
 
   //Class.forName("com.mysql.jdbc.Driver")
   Class.forName("com.mysql.cj.jdbc.Driver")
@@ -111,9 +115,15 @@ object MySQL2Pipe extends App {
                                                                      user, pswd)
     val statement = con.createStatement()
 
-    sqlfs.foreach(file => sqlFile2pipe(file, sqlEncoding, statement, writer,
-                                    jsonField, repetitiveFields, repetitiveSep))
-    writer.close
+    sqlfs.foreach {
+      file => {
+        println(s"+++ Converting records from [$file]")
+        sqlFile2pipe(file, sqlEncoding, statement, writer, jsonField, repetitiveFields, repetitiveSep)
+      }
+    }
+    println("+++ All records converted!")
+
+    writer.close()
     statement.close()
     con.close()
   }
@@ -149,17 +159,53 @@ object MySQL2Pipe extends App {
     reader.close()
 
     val rs = statement.executeQuery(content)
-    val meta = rs.getMetaData()
-    val cols = meta.getColumnCount()
+    val meta = rs.getMetaData
+    val cols = meta.getColumnCount
     val names = (1 to cols).foldLeft[List[String]](List()) {
       case (lst, col) => lst :+ meta.getColumnName(col)
     }
+    val idFieldPos =  (1 to cols).find(pos => meta.getColumnName(pos).toLowerCase.equals(idFieldName))
+    var tell = 0
+
     while (rs.next()) {
-      parseRecord(rs, names, cols, jsonField,repetitiveFields, repetitiveSep).
-                                                                       foreach {
+      parseRecord(rs, names, cols, jsonField,repetitiveFields, repetitiveSep).foreach {
         line =>
-          writer.write(line)
+          val pipe: String = suffixIdWithLang(line, idFieldPos.map(_-1))
+          //println(pipe)
+          writer.write(pipe)
           writer.newLine()
+          if (tell % 10000 == 0) println(s"+++$tell")
+          tell += 1
+      }
+    }
+  }
+
+  /**
+  * Given a pipe line, prefix the idFieldPos element with hifen plus the language 2 letters
+    * @param str input pipe string
+    * @param idFieldPos position of the pipe of the position field string
+    * @return the output pipe string where the id field is suffixed with hifen plus the 2 letters language. For ex: 53498-pt
+    */
+  def suffixIdWithLang(str: String,
+                       idFieldPos: Option[Int]): String = {
+    val elems: Array[String] = str.split(" *\\| *", Integer.MAX_VALUE)
+    val langIndex: Int = elems.indexWhere(_.matches("\\([a-z][a-z]\\).+"))
+
+    if (langIndex == -1) str
+    else {
+      idFieldPos match {
+        case Some(ifPos) =>
+          val lang = elems(langIndex).substring(1, 3)
+
+          elems.zipWithIndex.foldLeft("") {
+            case (str1: String, (elem:String, idx:Int)) =>
+              val prefix = if (idx == 0) str1 else str1 + "|"
+
+              if (idx == langIndex) prefix + elem.substring(4) // index of the field that starts with the language. For ex |(pt)Meu querido...|
+              else if (idx == ifPos) s"$prefix$elem-$lang"
+              else prefix + elem
+          }
+        case None => str
       }
     }
   }
@@ -187,26 +233,27 @@ object MySQL2Pipe extends App {
                           repetitiveFields: Set[String],
                           repetitiveSep: String): List[String] = {
     (1 to cols).foldLeft[List[String]](List()) {
-      case(lst,col) => {
-        val str = (Try(rs.getString(col)) getOrElse "????")
+      case(lst,col) =>
+        val str = Try(rs.getString(col)) getOrElse "????"
+//println(s"[$col]${rs.getString(col)}")
         val str2 = if (str == null) "" else str.trim()
         val str3 = if (Tools.isUtf8Encoding(str2)) str2 else "????"
-        val str4 =  if (str3.startsWith("[{") || str3.startsWith("{"))
-                      getElement(str3, jsonField, repetitiveSep)
-                    else str3
+        val str4 = if (str3.startsWith("[{") || str3.startsWith("{"))
+                     getElement(str3, jsonField, repetitiveSep)
+                   else str3
         val str5 = str4.replace("|", " ")
-        val elems = parseCell(str5, repetitiveFields(names(col - 1)), repetitiveSep)
-        if (lst.isEmpty) elems else elems.flatMap(elem => lst.map(l => s"$l|$elem"))
-      }
+        val elems: List[String] = parseCell(str5, repetitiveFields(names(col - 1)), repetitiveSep)
+        if (lst.isEmpty) elems
+        else elems.flatMap(elem => lst.map(l => s"$l|$elem"))
     }
   }
 
-  /** Given a celula content, it returns a list of one element (the content itself)
+  /** Given a cell content, it returns a list of one element (the content itself)
     * if splitLine is false or repetitiveSep symbol is not found or a list of
     * piped lines otherwise. For ex "[a][b][c//@//d][e]" will result:
     *  a|b|c|e and a|b|d|e for //@// repetitiveSeparator
     *
-    * @param colContent the cell content (document field)
+    * @param celContent the cell content (document field)
     * @param splitLine indicates if the content should be splited into line if
     *                  the repetitive separator string is found
     * @param repetitiveSep string indicating the position where the content
@@ -244,22 +291,58 @@ object MySQL2Pipe extends App {
     }
   }
 
-  /** Retrieves a json document field
+  /** Retrieves a json document field and prefix it with the language
     *
-    * @param json Json document object'
-    * @param jsonField field names whose content will be retrieved
-    * @param repetitiveSep symbol to be used to concatenate field content which
-    *                      is a listFiles
+    * @param doc Jsonobject document object
+    * @param jsonField set of field names whose first content found will be retrieved
+    * @param repetitiveSep symbol to be used to concatenate field content which is a listFiles
     * return Some with the field content or None otherwise
     */
   private def findElement(doc: Json,
                           jsonField: Set[String],
                           repetitiveSep: String): Option[String] = {
-    if (jsonField.isEmpty) None
+    if (doc.isArray) {
+      doc.asArray.map(vec => vec.flatMap(json => findElement(json, jsonField, repetitiveSep)).mkString(repetitiveSep))
+    } else if (doc.isObject) {
+      doc.asObject.flatMap(obj => findElement(obj, jsonField, repetitiveSep))
+    } else None
+  }
+
+    /** Retrieves a json document field and prefix it with the language
+    *
+    * @param obj Jsonobject document object
+    * @param jsonField set of field names whose first content found will be retrieved
+    * @param repetitiveSep symbol to be used to concatenate field content which is a listFiles
+    * return Some with the field content or None otherwise
+    */
+  private def findElement(obj: JsonObject,
+                          jsonField: Set[String],
+                          repetitiveSep: String): Option[String] = {
+    if (obj.isEmpty) None
     else {
-      val elems: List[Json] = doc.findAllByKey(jsonField.head)
-      if (elems.isEmpty) findElement(doc, jsonField.tail, repetitiveSep)
-      else Some(elems.map(elem => elem.asString).flatten.mkString(repetitiveSep))
+      if (jsonField.isEmpty) None
+      else {
+        val fld = jsonField.head
+        obj(fld) match {
+          case Some(json) =>
+            json.asString.flatMap {
+              str: String =>
+                if (str.isEmpty) findElement(obj, jsonField.tail, repetitiveSep)
+                else {
+                  obj(jsonLangField) match {
+                    case Some(json2: Json) =>
+                      json2.asString.map {
+                        lang =>
+                          val langT = lang.trim.toLowerCase
+                          s"($langT)$str"
+                      }
+                    case None => Some(str)
+                  }
+                }
+            }
+          case None => findElement(obj, jsonField.tail, repetitiveSep)
+        }
+      }
     }
   }
 }
