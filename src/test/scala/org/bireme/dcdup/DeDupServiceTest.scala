@@ -62,7 +62,7 @@ class DeDupServiceTest extends FlatSpec {
     content
   }
 
-  val service = "http://localhost:8084/DeDup" //"http://dedup.bireme.org"
+  val service = /*"http://localhost:8084/DeDup"*/ "http://dedup.bireme.org"
 
   // === Check if the server is accessible ===
   "The DeDup Service page" should "be on" in {
