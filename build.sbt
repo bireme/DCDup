@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   organization := "br.bireme",
   version := "0.1.0",
-  scalaVersion := "2.12.7" //"2.12.4"
+  scalaVersion := "2.12.8" //"2.12.7"
 )
 
 lazy val root = (project in file(".")).
@@ -12,14 +12,14 @@ lazy val root = (project in file(".")).
 
 val commonsLangVersion = "3.8.1" // "3.7"
 val commonsTextVersion = "1.6" // "1.4"
-val luceneVersion = "7.5.0" // "7.4.0"
-val jacksonVersion = "2.9.7" // "2.9.6"
-val httpClientVersion = "4.5.6" // "4.5.5"
+val luceneVersion = "7.7.1" // "7.5.0"
+val jacksonVersion = "2.9.8" // "2.9.7"
+val httpClientVersion = "4.5.7" // "4.5.6"
 val scalajHttpVersion = "2.4.1"
-val mySQLVersion = "8.0.13" // "8.0.11"
+val mySQLVersion = "8.0.15" // "8.0.13"
 val logBackVersion = "1.2.3"
-val circeParserVersion = "0.10.0" // "0.9.3"
-val scalaTestVersion = "3.0.5"
+val circeParserVersion = "0.11.1" // "0.10.0"
+val scalaTestVersion = "3.0.6" // "3.0.5"
 val hairyfotrVersion = "0.1.17"
 
 libraryDependencies ++= Seq(

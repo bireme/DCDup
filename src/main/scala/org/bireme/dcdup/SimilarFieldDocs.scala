@@ -15,7 +15,7 @@ import br.bireme.ngrams.{NGAnalyzer, NGrams}
 import org.apache.lucene.document.Document
 import org.apache.lucene.index.{DirectoryReader, MultiFields}
 import org.apache.lucene.search.spell.NGramDistance
-import org.apache.lucene.store.MMapDirectory
+import org.apache.lucene.store.FSDirectory
 import org.apache.lucene.util.Bits
 
 import scala.collection.immutable.TreeMap
@@ -86,8 +86,7 @@ object SimilarFieldDocs extends App {
     val iterator: DocumentIterator = new DocumentIterator(index)
     val writer: BufferedWriter = Files.newBufferedWriter(
       new File(outFile).toPath, Charset.forName("utf-8"))
-    val reader: DirectoryReader = DirectoryReader.open(
-      new MMapDirectory(new File(index).toPath))
+    val reader: DirectoryReader = DirectoryReader.open(FSDirectory.open(new File(index).toPath))
 
     writer.write(fldText + "\n\n")
 
@@ -182,8 +181,7 @@ object SimilarFieldDocs extends App {
   * @param indexPath - Lucene index path
   */
 class DocumentIterator(indexPath: String) extends Iterator[(Int, Document)] {
-  val reader: DirectoryReader = DirectoryReader.open(
-    new MMapDirectory(new File(indexPath).toPath))
+  val reader: DirectoryReader = DirectoryReader.open(FSDirectory.open(new File(indexPath).toPath))
   val liveDocs: Bits = MultiFields.getLiveDocs(reader)
   val max: Int = reader.maxDoc()
   var cur: Int = 0
@@ -194,9 +192,16 @@ class DocumentIterator(indexPath: String) extends Iterator[(Int, Document)] {
     * @return true if has a next object of false otherwise
     */
   private def hasNext0: Boolean = {
-    val has : Boolean = (liveDocs != null) && (cur < max)
-    if (!has) close()
-    has
+    if (cur < max) {
+      if ((liveDocs == null) || liveDocs.get(cur)) true       // there is no deleted document OR document is active
+      else {                                                    // document is deleted
+        cur += 1
+        hasNext0
+      }
+    } else {
+      close()
+      false
+    }
   }
 
   /**
@@ -205,13 +210,8 @@ class DocumentIterator(indexPath: String) extends Iterator[(Int, Document)] {
     */
   private def getNext: Option[(Int,Document)] = {
     if (hasNext0) {
-      if (liveDocs.get(cur)) {
-        cur += 1
-        Some((cur - 1, reader.document(cur - 1)))
-      } else {
-        cur += 1
-        getNext
-      }
+      cur += 1
+      Some((cur - 1, reader.document(cur - 1)))
     } else None
   }
 
