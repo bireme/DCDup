@@ -38,18 +38,24 @@ object SimilarFieldDocs extends App {
     System.exit(1)
   }
 
-  if (args.length < 4) usage()
-
   val parameters = args.foldLeft[Map[String, String]](Map()) {
     case (map, par) =>
-      val split = par.split(" *= *", 2)
-      if (split.length == 1) map + ((split(0).substring(2), ""))
-      else if (split.length == 2) map + ((split(0).substring(1), split(1)))
+      if (par.isEmpty) map
       else {
-        usage()
-        map
+        val split = par.split(" *= *", 2)
+        if (split.length == 1) {
+          println(s"split(0)=${split(0)}")
+          map + ((split(0).substring(2), ""))
+        }
+        else if (split.length == 2) map + ((split(0).substring(1), split(1)))
+        else {
+          usage()
+          map
+        }
       }
   }
+
+  if (parameters.size < 4) usage()
 
   val fldText: String = parameters("fldText")
   val index: String = parameters("index")
