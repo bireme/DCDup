@@ -169,16 +169,16 @@ object DocDuplicityExplain extends App {
       case ((tot,bool), (pos, result)) =>
         result match {
           case -1 =>
-            builder.append(s"\nField[$pos,'${fields(pos).name}'] = does NOT match")
+            builder.append(s"\nField[$pos,'${fields(pos).name}']: does NOT match")
             (tot, bool)
           case -2 =>
-            builder.append(s"\nField[$pos,'${fields(pos).name}'] = requires maximum similarity score")
+            builder.append(s"\nField[$pos,'${fields(pos).name}']: requires maximum similarity score")
             (tot, true)
           case 0 =>
-            builder.append(s"\nField[$pos,'${fields(pos).name}'] = is ignored")
+            builder.append(s"\nField[$pos,'${fields(pos).name}']: is ignored")
             (tot, bool)
           case _ =>
-            builder.append(s"\nField[$pos,'${fields(pos).name}'] = matches")
+            builder.append(s"\nField[$pos,'${fields(pos).name}']: matches")
             (tot + 1, bool)
         }
     }
