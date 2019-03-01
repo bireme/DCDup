@@ -148,7 +148,7 @@ object DocDuplicityExplain extends App {
   * Create an output report explaining why the two documents are duplicated or not
     * @param parameters the representation of the index schema file
     * @param similarity number indication how much two document are similar
-    * @param results the result of comparing the two document fields
+    * @param results the result of comparing the two document fields (field position, fld check result:(-2,-1,0,1))
     * @param fields the (position, field) composition of the documents
     * @param doc1 input piped document
     * @param doc2 indexed document
@@ -161,42 +161,43 @@ object DocDuplicityExplain extends App {
                            doc1: Array[String],
                            doc2: Document): String = {
     val builder: StringBuilder =  StringBuilder.newBuilder
+    val sortedResult: Seq[(Int,Int)] = results.sortWith((res1, res2) => res1._1 <= res2._1)
 
     getDocs(doc1, doc2, fields, builder)
 
-    val (matchedFields: Int, maxScore: Boolean) = results.foldLeft(0, false) {
+    val (matchedFields: Int, maxScore: Boolean) = sortedResult.foldLeft(0, false) {
       case ((tot,bool), (pos, result)) =>
         result match {
           case -1 =>
-            builder.append(s"\nField[$pos,'${fields(pos).name}']: does NOT match")
+            builder.append(s"\nField[$pos,'${fields(pos).name}'] = does NOT match")
             (tot, bool)
           case -2 =>
-            builder.append(s"\nField[$pos,'${fields(pos).name}']: requires maximum similarity score")
+            builder.append(s"\nField[$pos,'${fields(pos).name}'] = requires maximum similarity score")
             (tot, true)
           case 0 =>
-            builder.append(s"\nField[$pos,'${fields(pos).name}']: is ignored")
+            builder.append(s"\nField[$pos,'${fields(pos).name}'] = is ignored")
             (tot, bool)
           case _ =>
-            builder.append(s"\nField[$pos,'${fields(pos).name}']: matches")
+            builder.append(s"\nField[$pos,'${fields(pos).name}'] = matches")
             (tot + 1, bool)
         }
     }
     builder.append(s"\n\nSimilarity = $similarity")
-    builder.append(s"\nRequired_max_similarity_score = $maxScore\nTotal_fields = ${results.size}\nMatched_fields = $matchedFields")
+    builder.append(s"\nRequired_max_similarity = $maxScore\nTotal_fields = ${results.size}\nMatched_fields = $matchedFields")
 
     getMinFields(parameters, similarity) match {
       case Some(minFields) =>
         builder.append(s"\nRequired_fields_match = $minFields")
         if (maxScore) {
           if (similarity == 1.0) {
-            if (matchedFields >= minFields) builder.append("\n\nDocuments are duplicated.")
-            else builder.append("\n\nDocuments are NOT duplicated. Matched fields[matchedFields] < $minFields.")
-          } else builder.append("\n\nDocuments are NOT duplicated. Similarity[$similarity] < 1.0")
+            if (matchedFields >= minFields) builder.append("\n\n=> Documents are duplicated.")
+            else builder.append("\n\n=> Documents are NOT duplicated. Matched fields[matchedFields] < $minFields.")
+          } else builder.append("\n\n=> Documents are NOT duplicated. Similarity[$similarity] < 1.0")
         } else {
-          if (matchedFields >= minFields) builder.append("\n\nDocuments are duplicated.")
-          else builder.append(s"\n\nDocuments are NOT duplicated. Matched fields[matchedFields] < $minFields.")
+          if (matchedFields >= minFields) builder.append("\n\n=> Documents are duplicated.")
+          else builder.append(s"\n\n=> Documents are NOT duplicated. Matched fields[matchedFields] < $minFields.")
         }
-      case None => builder.append(s"\n\nDocuments are NOT duplicated. Similarity[$similarity] < ${parameters.getMinSimilarity}.")
+      case None => builder.append(s"\n\n=> Documents are NOT duplicated. Similarity[$similarity] < ${parameters.getMinSimilarity}.")
     }
     builder.toString()
   }
@@ -215,14 +216,14 @@ object DocDuplicityExplain extends App {
                       builder: StringBuilder): StringBuilder = {
     builder.append("\nInput document:")
     fields foreach {
-      case (pos, fld) => builder.append(s"\n${fld.name} => ${doc1(pos)}")
+      case (pos, fld) => builder.append(s"\n${fld.name} = ${doc1(pos)}")
     }
 
     builder.append("\n\nIndexed document:")
     fields foreach {
       case (_, fld) =>
         val notNormalized: String = fld.name + "~notnormalized"
-        builder.append(s"\n${fld.name} => ${doc2.getValues(notNormalized).head}")
+        builder.append(s"\n${fld.name} = ${doc2.getValues(notNormalized).head}")
     }
     builder.append("\n")
   }
@@ -271,7 +272,9 @@ object DocDuplicityExplain extends App {
     */
   private def getDocument(docId: String,
                           searcher: IndexSearcher): Option[Document] = {
-    val query = new TermQuery(new Term("id", docId))
+    val idn: String = br.bireme.ngrams.Tools.limitSize(
+      br.bireme.ngrams.Tools.normalize(docId, NGrams.OCC_SEPARATOR), NGrams.MAX_NG_TEXT_SIZE).trim
+    val query = new TermQuery(new Term("id", idn))
 
     val topDocs = searcher.search(query, 1)
     if (topDocs.totalHits == 0) None
