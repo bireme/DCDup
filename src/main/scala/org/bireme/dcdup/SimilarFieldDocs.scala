@@ -30,7 +30,7 @@ import collection.JavaConverters._
 object SimilarFieldDocs extends App {
   private def usage(): Unit = {
     System.err.println("usage: SimilarFieldDocs")
-    System.err.println("\t\t-fldText=<text> - input text used to find similar documents")
+    System.err.println("\t\t-fieldText=<text> - input text used to find similar documents")
     System.err.println("\t\t-index=<path> - path to the Lucene index")
     System.err.println("\t\t-fieldName=<name> - document field used to compare with the input text")
     System.err.println("\t\t[-outFile=<file>] - the output file where the similar documents will be placed." +
@@ -61,7 +61,7 @@ object SimilarFieldDocs extends App {
 
   if (parameters.size < 3) usage()
 
-  val fldText: String = parameters("fldText")
+  val fieldText: String = parameters("fieldText")
   val index: String = parameters("index")
   val fieldName: String = parameters("fieldName")
   val outFile: Option[String] = parameters.get("outFile")
@@ -69,7 +69,7 @@ object SimilarFieldDocs extends App {
   val simDocsNum: Int = parameters.getOrElse("simDocsNum", "0").toInt
   val notNormalize: Boolean = parameters.getOrElse("notNormalize", "false").toBoolean
 
-  findSimilars(fldText, index, fieldName, outFile, notNormalize)
+  findSimilars(fieldText, index, fieldName, outFile, notNormalize)
 
   /**
   * Find documents whose field is similiar to the input text
