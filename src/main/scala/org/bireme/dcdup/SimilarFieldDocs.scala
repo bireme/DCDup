@@ -7,18 +7,19 @@
 
 package org.bireme.dcdup
 
-import java.io.{BufferedWriter, File}
+import java.io.{BufferedWriter, File, OutputStreamWriter}
 import java.nio.charset.Charset
 import java.nio.file.Files
 
 import br.bireme.ngrams.{NGAnalyzer, NGrams}
 import org.apache.lucene.document.Document
-import org.apache.lucene.index.{DirectoryReader, MultiFields}
+import org.apache.lucene.index.{DirectoryReader, IndexableField, MultiFields}
 import org.apache.lucene.search.spell.NGramDistance
 import org.apache.lucene.store.FSDirectory
 import org.apache.lucene.util.Bits
 
 import scala.collection.immutable.TreeMap
+import collection.JavaConverters._
 
 /**
 * Look for documents whose field is similar to the input text
@@ -32,8 +33,11 @@ object SimilarFieldDocs extends App {
     System.err.println("\t\t-fldText=<text> - input text used to find similar documents")
     System.err.println("\t\t-index=<path> - path to the Lucene index")
     System.err.println("\t\t-fieldName=<name> - document field used to compare with the input text")
-    System.err.println("\t\t-outFile=<file> - the output file where the similar documents will be placed")
-    System.err.println("\t\t[-outSize=<max>] - the maximum number of similar documents that will be outputed")
+    System.err.println("\t\t[-outFile=<file>] - the output file where the similar documents will be placed." +
+      "Default output is the standard output")
+    System.err.println("\t\t[-outSize=<max>] - the maximum number of similar documents that will be outputed." +
+      "Default is 10")
+    System.err.println("\t\t[-simDocsNum=<num>] - show the <num> most similar documents. Default is zero")
     System.err.println("\t\t[--notNormalize] - do not normalize the input text")
     System.exit(1)
   }
@@ -55,13 +59,14 @@ object SimilarFieldDocs extends App {
       }
   }
 
-  if (parameters.size < 4) usage()
+  if (parameters.size < 3) usage()
 
   val fldText: String = parameters("fldText")
   val index: String = parameters("index")
   val fieldName: String = parameters("fieldName")
-  val outFile: String = parameters("outFile")
+  val outFile: Option[String] = parameters.get("outFile")
   val outSize: Int = parameters.getOrElse("outSize", "10").toInt
+  val simDocsNum: Int = parameters.getOrElse("simDocsNum", "0").toInt
   val notNormalize: Boolean = parameters.getOrElse("notNormalize", "false").toBoolean
 
   findSimilars(fldText, index, fieldName, outFile, notNormalize)
@@ -77,15 +82,17 @@ object SimilarFieldDocs extends App {
   def findSimilars(fldText: String,
                    index: String,
                    fldName: String,
-                   outFile: String,
+                   outFile: Option[String],
                    notNormalize: Boolean): Unit = {
     val inText: String = if (notNormalize) fldText.trim
       else br.bireme.ngrams.Tools.limitSize(
       br.bireme.ngrams.Tools.normalize(fldText, NGrams.OCC_SEPARATOR), NGrams.MAX_NG_TEXT_SIZE).trim
     val ngDistance = new NGramDistance(new NGAnalyzer().getNgramSize)
     val iterator: DocumentIterator = new DocumentIterator(index)
-    val writer: BufferedWriter = Files.newBufferedWriter(
-      new File(outFile).toPath, Charset.forName("utf-8"))
+    val writer: BufferedWriter = outFile match {
+      case Some(oFile) => Files.newBufferedWriter(new File(oFile).toPath, Charset.forName("utf-8"))
+      case None => new BufferedWriter(new OutputStreamWriter(System.out))
+    }
     val reader: DirectoryReader = DirectoryReader.open(FSDirectory.open(new File(index).toPath))
 
     writer.write(fldText + "\n\n")
@@ -93,7 +100,8 @@ object SimilarFieldDocs extends App {
     val sim : Map[Float, Set[Int]] =
       findSimilars(inText, iterator, fldName, ngDistance, new TreeMap[Float,Set[Int]], 0, 0)
 
-    TreeMap[Float, Set[Int]]()(Ordering[Float].reverse) ++ sim foreach {
+    val simTree: TreeMap[Float, Set[Int]] = TreeMap[Float, Set[Int]]()(Ordering[Float].reverse) ++ sim
+    simTree foreach {
       case (sim: Float, set: Set[Int]) => set foreach {
         id: Int =>
           val doc = reader.document(id)
@@ -108,6 +116,8 @@ object SimilarFieldDocs extends App {
           if (!field.isEmpty && !did.isEmpty) writer.write(s"$sim|$did|$field\n")
       }
     }
+    val simDocs: String = getSimDocs(reader, simTree, simDocsNum)
+    if (!simDocs.isEmpty) writer.write(s"\n\n$simDocs")
 
     reader.close()
     iterator.close()
@@ -173,6 +183,51 @@ object SimilarFieldDocs extends App {
       case Some(ids) => results + (distance -> (ids + id))
       case None => results + (distance -> Set(id))
     }
+  }
+
+  /**
+  * Build a string with a sequence of similarity|lucene_doc_id|indexed text
+    * @param reader Lucene index reader
+    * @param simTree result of similar documents
+    * @param num maximum number of similar documents to show
+    * @return string with a sequence of similarity|lucene_doc_id|indexed text
+    */
+  private def getSimDocs(reader: DirectoryReader,
+                         simTree: TreeMap[Float, Set[Int]],
+                         num: Int): String = {
+    def getIds(iterator: Iterator[(Float, Set[Int])],
+               aux: Seq[(Float, Int)],
+               remain: Int): Seq[(Float, Int)] = {
+      if (iterator.hasNext) {
+        val aux2 = getIds2(iterator.next(), aux, remain)
+        getIds(iterator, aux2, num - aux2.size)
+      }
+      else aux
+    }
+    def getIds2(ids: (Float,Set[Int]),
+                aux: Seq[(Float, Int)],
+                remain: Int): Seq[(Float,Int)] = {
+      if (ids._2.isEmpty || remain == 0) aux
+      else getIds2((ids._1,ids._2.tail), aux :+ ((ids._1, ids._2.head)), remain - 1)
+    }
+
+    val builder: StringBuilder =  StringBuilder.newBuilder
+
+    getIds(simTree.iterator, Seq[(Float, Int)](), num) foreach {
+      case (sim,id) =>
+        val doc: Document = reader.document(id)
+
+        builder.append(s"\n[similarity: $sim]\n")
+        doc.getFields.asScala foreach {
+          field: IndexableField =>
+            val fname = field.name()
+            if (fname.endsWith("~notnormalized")) {
+              val fname2 = fname.substring(0, fname.length - 14)
+              builder.append(s"$fname2: ${field.stringValue()}\n")
+            }
+        }
+    }
+    builder.toString()
   }
 }
 
