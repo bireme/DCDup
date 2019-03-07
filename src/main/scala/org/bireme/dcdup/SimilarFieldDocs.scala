@@ -48,7 +48,7 @@ object SimilarFieldDocs extends App {
       else {
         val split = par.split(" *= *", 2)
         if (split.length == 1) {
-          println(s"split(0)=${split(0)}")
+          //println(s"split(0)=${split(0)}")
           map + ((split(0).substring(2), ""))
         }
         else if (split.length == 2) map + ((split(0).substring(1), split(1)))
@@ -110,7 +110,7 @@ object SimilarFieldDocs extends App {
             if (aux == null) "" else aux
           }
           val did: String = {
-            val aux: String = doc.get("id")
+            val aux: String = doc.get("id" + "~notnormalized")
             if (aux == null) "" else aux
           }
           if (!field.isEmpty && !did.isEmpty) writer.write(s"$sim|$did|$field\n")
@@ -249,7 +249,7 @@ class DocumentIterator(indexPath: String) extends Iterator[(Int, Document)] {
   private def hasNext0: Boolean = {
     if (cur < max) {
       if ((liveDocs == null) || liveDocs.get(cur)) true       // there is no deleted document OR document is active
-      else {                                                    // document is deleted
+      else {                                                  // document is deleted
         cur += 1
         hasNext0
       }
@@ -261,7 +261,7 @@ class DocumentIterator(indexPath: String) extends Iterator[(Int, Document)] {
 
   /**
   *
-    * @return the next document from the index
+    * @return the next document from the index (index position, document)
     */
   private def getNext: Option[(Int,Document)] = {
     if (hasNext0) {
