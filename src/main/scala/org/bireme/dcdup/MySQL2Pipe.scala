@@ -32,6 +32,7 @@ object MySQL2Pipe extends App {
       "\n\t-dbnm=<MySQL_Dbname> - MySQL database name" +
       "\n\t-sqls=<sqlFile>[,<sqlFile>,...,<sqlFile>] - sql specification files" +
       "\n\t-pipe=<pipeFile> - output piped file" +
+      "\n\t[-port=<MySQL_Port>] - MySQL port" +
       "\n\t[-sqlEncoding=<sqlEncoding>] - sql file encoding. Default is utf-8" +
       "\n\t[-pipeEncoding=<pipeEncoding>] - output piped file encoding. Default is utf-8" +
       "\n\t[-jsonField=<tag>[,<tag>,...,<tag>]] - if a column element is a json element, indicates which" +
@@ -66,6 +67,7 @@ object MySQL2Pipe extends App {
   val dbnm = parameters("dbnm")
   val sqlfs = parameters("sqls").trim.split(" *\\, *").toSet
   val pipe = parameters("pipe")
+  val port = parameters.getOrElse("port", "3306")
   val sqlEncoding = parameters.getOrElse("sqlEncoding", "utf-8")
   val pipeEncoding = parameters.getOrElse("pipeEncoding", "utf-8")
   val jsonField = parameters.getOrElse("jsonField", "text,_f").trim.split(" *\\, *").toSet
@@ -77,7 +79,7 @@ object MySQL2Pipe extends App {
   //Class.forName("com.mysql.jdbc.Driver")
   Class.forName("com.mysql.cj.jdbc.Driver")
 
-  sql2pipe(host, user, pswd, dbnm, sqlfs, pipe,
+  sql2pipe(host, user, pswd, dbnm, sqlfs, pipe, port,
            sqlEncoding, pipeEncoding, jsonField, repetitiveField, repetitiveSep)
 
   /**
@@ -88,6 +90,7 @@ object MySQL2Pipe extends App {
     * @param pswd MySQL password
     * @param sqlfs set of files having sql statements
     * @param pipe output piped file
+    * @param port MySQL host port
     * @param sqlEncoding the sql file character encoding
     * @param pipeEncoding output piped file encoding
     * @param jsonField if a column element is a json element, indicates which
@@ -102,6 +105,7 @@ object MySQL2Pipe extends App {
                dbnm: String,
                sqlfs: Set[String],
                pipe: String,
+               port: String,
                sqlEncoding: String,
                pipeEncoding: String,
                jsonField: Set[String],
@@ -111,7 +115,7 @@ object MySQL2Pipe extends App {
                                          Charset.forName(pipeEncoding))
     val con = DriverManager.getConnection(
                 //s"jdbc:mysql://${host.trim}:3306/${dbnm.trim}",
-                s"jdbc:mysql://${host.trim}:3306/${dbnm.trim}?useTimezone=true&serverTimezone=UTC&useSSL=false",
+                s"jdbc:mysql://${host.trim}:${port}/${dbnm.trim}?useTimezone=true&serverTimezone=UTC&useSSL=false",
                                                                      user, pswd)
     val statement = con.createStatement()
 

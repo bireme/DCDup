@@ -19,7 +19,7 @@ val scalajHttpVersion = "2.4.1"
 val mySQLVersion = "8.0.15" // "8.0.13"
 val logBackVersion = "1.2.3"
 val circeParserVersion = "0.11.1" // "0.10.0"
-val scalaTestVersion = "3.0.6" // "3.0.5"
+val scalaTestVersion = "3.0.7" //"3.0.6"
 val hairyfotrVersion = "0.1.17"
 
 libraryDependencies ++= Seq(
