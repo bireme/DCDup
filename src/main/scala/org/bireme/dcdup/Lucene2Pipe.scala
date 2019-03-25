@@ -7,17 +7,16 @@
 
 package org.bireme.dcdup
 
-import br.bireme.ngrams.NGSchema
-
 import java.io.Writer
-import java.nio.file.{Files,Paths}
 import java.nio.charset.Charset
+import java.nio.file.{Files, Paths}
+
+import br.bireme.ngrams.NGSchema
+import org.apache.lucene.document.Document
+import org.apache.lucene.index.{DirectoryReader, MultiBits}
+import org.apache.lucene.store.FSDirectory
 
 import scala.collection.JavaConverters._
-
-import org.apache.lucene.document.Document
-import org.apache.lucene.store.FSDirectory
-import org.apache.lucene.index.{DirectoryReader,MultiFields}
 
 object Lucene2Pipe extends App {
   private def usage(): Unit = {
@@ -34,13 +33,13 @@ object Lucene2Pipe extends App {
   if (args.length < 4) usage()
   val pipeEncoding = if (args.length > 4) args(4) else "utf-8"
 
-  toPipe(args(0), args(1), args(2), args(3), pipeEncoding)
+  generatePipe(args(0), args(1), args(2), args(3), pipeEncoding)
 
-  def toPipe(indexPath: String,
-             schemaFile: String,
-             schemaEncoding: String,
-             pipeFile: String,
-             pipeEncoding: String): Unit = {
+  def generatePipe(indexPath: String,
+                   schemaFile: String,
+                   schemaEncoding: String,
+                   pipeFile: String,
+                   pipeEncoding: String): Unit = {
 
     val schema = new NGSchema("schema", schemaFile, schemaEncoding)
     val fields = mapAsScalaMap(schema.getPosNames).toList
@@ -48,7 +47,8 @@ object Lucene2Pipe extends App {
                                       Charset.forName(pipeEncoding))
     val directory = FSDirectory.open(Paths.get(indexPath))
     val reader = DirectoryReader.open(directory)
-    val liveDocs = MultiFields.getLiveDocs(reader)
+    //val liveDocs = MultiFields.getLiveDocs(reader) Lucene version before 8.0.0
+    val liveDocs = MultiBits.getLiveDocs(reader)  // Lucene version 8.0.0
 
     (0 until reader.maxDoc()).foreach {
     //(0 until 1).foreach {

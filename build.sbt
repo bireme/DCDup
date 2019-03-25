@@ -12,7 +12,7 @@ lazy val root = (project in file(".")).
 
 val commonsLangVersion = "3.8.1" // "3.7"
 val commonsTextVersion = "1.6" // "1.4"
-val luceneVersion = "7.7.1" // "7.5.0"
+val luceneVersion = "8.0.0" // "7.7.1"
 val jacksonVersion = "2.9.8" // "2.9.7"
 val httpClientVersion = "4.5.7" // "4.5.6"
 val scalajHttpVersion = "2.4.1"

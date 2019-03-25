@@ -13,13 +13,13 @@ import java.nio.file.Files
 
 import br.bireme.ngrams.{NGAnalyzer, NGrams}
 import org.apache.lucene.document.Document
-import org.apache.lucene.index.{DirectoryReader, IndexableField, MultiFields}
+import org.apache.lucene.index.{DirectoryReader, IndexableField, MultiBits}
 import org.apache.lucene.search.spell.NGramDistance
 import org.apache.lucene.store.FSDirectory
 import org.apache.lucene.util.Bits
 
+import scala.collection.JavaConverters._
 import scala.collection.immutable.TreeMap
-import collection.JavaConverters._
 
 /**
 * Look for documents whose field is similar to the input text
@@ -237,7 +237,8 @@ object SimilarFieldDocs extends App {
   */
 class DocumentIterator(indexPath: String) extends Iterator[(Int, Document)] {
   val reader: DirectoryReader = DirectoryReader.open(FSDirectory.open(new File(indexPath).toPath))
-  val liveDocs: Bits = MultiFields.getLiveDocs(reader)
+  //val liveDocs: Bits = MultiFields.getLiveDocs(reader) Lucene version before 8.0.0
+  val liveDocs: Bits = MultiBits.getLiveDocs(reader) // Lucene version 8.0.0
   val max: Int = reader.maxDoc()
   var cur: Int = 0
   var elem: Option[(Int, Document)] = getNext
