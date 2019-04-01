@@ -49,7 +49,7 @@ object WebPipe2Lucene extends App {
     println("\nVerifying pipe file integrity")
     val goodFileName = File.createTempFile("good", "").getPath
     val badFileName = File.createTempFile("bad", "").getPath
-    val (good,bad) = VerifyPipeFile.check(pipeFile, pipeFileEncoding,
+    val (good,bad) = VerifyPipeFile.checkRemote(pipeFile, pipeFileEncoding,
       deDupBaseUrl + "/schema/" + schemaName, goodFileName, badFileName)
     println(s"Using $good documents")
     if (bad > 0) println(s"Skipping $bad documents. See file: $badFileName\n")

@@ -115,7 +115,7 @@ object MySQL2Pipe extends App {
                                          Charset.forName(pipeEncoding))
     val con = DriverManager.getConnection(
                 //s"jdbc:mysql://${host.trim}:3306/${dbnm.trim}",
-                s"jdbc:mysql://${host.trim}:${port}/${dbnm.trim}?useTimezone=true&serverTimezone=UTC&useSSL=false",
+                s"jdbc:mysql://${host.trim}:$port/${dbnm.trim}?useTimezone=true&serverTimezone=UTC&useSSL=false",
                                                                      user, pswd)
     val statement = con.createStatement()
 

@@ -7,20 +7,16 @@
 
 package org.bireme.dcdup
 
-import br.bireme.ngrams.{NGrams,NGIndex,NGSchema}
-
-import java.io.{BufferedWriter, File, FileOutputStream, IOException,
-                OutputStreamWriter}
+import java.io._
 import java.nio.charset.{Charset, CodingErrorAction}
-import java.util.Calendar
 
-import org.apache.http.impl.client.HttpClientBuilder
-import org.apache.http.client.methods.{HttpGet,HttpPost}
+import br.bireme.ngrams.NGSchema
+import org.apache.http.client.methods.{HttpGet, HttpPost}
 import org.apache.http.entity.StringEntity
+import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.util.EntityUtils
 
 import scala.io.Source
-import scala.collection.JavaConverters._
 
 /** Checks a DeDup input piped file against itself to look for duplicated
   * documents and then against a Dedup index via DeDup webservice
@@ -76,112 +72,31 @@ class WebDoubleCheckDuplicated {
 
     // Self check
     println("\nSelf check")
-    localCheck(ngSchema, pipeFile, pipeFileEncoding, outDupFile1,
-                                                             outDupFileEncoding)
-    //createReport(outDupFile1, outDupFileEncoding)
+    CheckDuplicated.checkDuplicated(pipeFile, pipeFileEncoding , None, ngSchema, outDupFile1,
+      outNoDupFile + "_self", outDupFileEncoding)
 
     // Check using DeDup service
     println("\nRemote check")
     remoteCheck(deDupBaseUrl, indexName, schemaName, pipeFile, pipeFileEncoding,
-                                                outDupFile2, outDupFileEncoding)
-    // Take duplicate no duplicated documents
-    takeNoDuplicated(pipeFile, pipeFileEncoding, outDupFile1, outDupFile2,
-                     outNoDupFile, outDupFileEncoding)
-  }
+                                                outDupFile2 + "_tmp", outDupFileEncoding)
 
-  /** Given an input piped file and a NGrams index, looks for documents that
-    * are in the input file that are similar to the ones stored in the index.
-    *
-    * @param schemaFile NGrams index/search configuration file
-    * @param schemaFileEncoding Schema file encoding
-    * @param pipeFile input piped file used to look for similar docs
-    * @param pipeFileEncoding input piped file character encoding
-    * @param outDupFile output piped file with the similar documents
-    * @param outDupFileEncoding output piped file character encoding
-    */
-  def localCheck(schemaFile: String,
-                 schemaFileEncoding: String,
-                 pipeFile: String,
-                 pipeFileEncoding: String,
-                 outDupFile: String,
-                 outDupFileEncoding: String): Unit = {
-    val codAction = CodingErrorAction.REPLACE
-    val decoder = Charset.forName(schemaFileEncoding).newDecoder()
-                  .onMalformedInput(codAction)
-                  .onUnmappableCharacter(codAction)
-    val src = Source.fromFile(schemaFile)(decoder)
-    val schemaStr = src.getLines().mkString("\n")
-    src.close()
+    println("OK\nPost processing remote duplicated files ... ")
+    val dupIds: Map[String, Set[String]] =
+      CheckDuplicated.postProcessDup(outDupFile2 + "_tmp", outDupFile2, outDupFileEncoding)
 
-    val ngSchema = new NGSchema("tmpSchema", schemaStr)
-    localCheck(ngSchema, pipeFile, pipeFileEncoding, outDupFile, outDupFileEncoding)
-  }
+    println("OK\nPost processing no duplicated remote files ... ")
+    val idsDup: Set[String] = dupIds.foldLeft(Set[String]()) ((set, kv) => set ++ (kv._2 + kv._1))
+    CheckDuplicated.postProcessNoDup(pipeFile, pipeFileEncoding, ngSchema,
+                                     outNoDupFile + "_remote", outDupFileEncoding, idsDup)
 
-  /** Given an input piped file and a NGrams cheam file, looks for documents that
-    * are duplicated in the input file.
-    *
-    * @param ngSchema NGrams index/search configuration file
-    * @param pipeFile input piped file used to look for similar docs
-    * @param pipeFileEncoding input piped file character encoding
-    * @param outDupFile output piped file with the similar documents
-    * @param outDupFileEncoding output piped file character encoding
-    */
-  def localCheck(ngSchema: NGSchema,
-                 pipeFile: String,
-                 pipeFileEncoding: String,
-                 outDupFile: String,
-                 outDupFileEncoding: String): Unit = {
-    val time = Calendar.getInstance().getTimeInMillis.toString
-    val tmpIndexPath = "/tmp/" + "DCDup_" + time
-    val tmpIndex = new NGIndex("tmpIndex", tmpIndexPath, false)
-    val indexWriter = tmpIndex.getIndexWriter(false)
-    val codAction = CodingErrorAction.REPLACE
-    val encoder = Charset.forName(outDupFileEncoding).newEncoder()
-                  .onMalformedInput(codAction)
-                  .onUnmappableCharacter(codAction)
-    val decoder = Charset.forName(pipeFileEncoding).newDecoder()
-                  .onMalformedInput(codAction)
-                  .onUnmappableCharacter(codAction)
-    val src = Source.fromFile(pipeFile)(decoder)
-    val dest = new BufferedWriter(new OutputStreamWriter(
-                 new FileOutputStream(outDupFile), encoder))
-    var cur = 0
-    indexWriter.commit()
+    // Remove duplication in the no duplicated documents file
+    CheckDuplicated.takeNoDuplicated(ngSchema, outNoDupFile + "_self", outNoDupFile + "_remote",
+      outNoDupFile, outDupFileEncoding)
 
-    src.getLines().foreach(line =>
-      if (!line.trim().isEmpty) {
-        NGrams.search(tmpIndex, ngSchema, line, false).asScala.foreach {
-          line2 =>
-            if (!isSameId(line2)) {
-              if (cur > 0) dest.write("\n")
-              dest.write(line2)
-            }
-        }
-        NGrams.indexDocument(tmpIndex, indexWriter, ngSchema, line, true)
-        indexWriter.commit()
-        if (cur % 1000 == 0) println(s"<<< $cur")
-        cur += 1
-      }
-    )
-    indexWriter.close()
-    src.close()
-    dest.close()
-
-    // Delete temporary files
-    deleteFile(new File(tmpIndexPath))
-  }
-
-  /** Given an output check line, verify if both duplicated documents have then
-    * the same id.
-    *
-    * @param line output check line
-    * @return true if the documents have the same id or false otherwise
-    */
-  private def isSameId(line: String): Boolean = {
-    val split = line.split("\\|")
-
-    if (split.size >= 6) split(2) == split(3)
-    else false
+    // Delete pre-processed output files
+    CheckDuplicated.deleteFile(new File(outDupFile2 + "_tmp"))
+    CheckDuplicated.deleteFile(new File(outNoDupFile + "_self"))
+    CheckDuplicated.deleteFile(new File(outNoDupFile + "_remote"))
   }
 
   /** Given an input piped file and a NGrams index, looks for documents that
@@ -236,7 +151,7 @@ class WebDoubleCheckDuplicated {
     * @param indexName DeDup index name used to look for duplicates. See http://dedup.bireme.org/services/indexes
     * @param schemaName DeDup data schema name. See http://dedup.bireme.org/services/schemas
     * @param lines string having documents separated by new line character
-    * @return a json string having the duplicated documents
+    * @return a piped string having the duplicated documents
     */
   private def rcheck(baseUrl: String,
                      indexName: String,
@@ -274,129 +189,6 @@ class WebDoubleCheckDuplicated {
     httpClient.close()
 //println(s"ret=[$ret]")
     ret
-  }
-
-  /** Creates a pipe file that is equal to the first one less the lines whose
-   * identifiers are also in the second and third ones.
-   *
-   * @param pipeFile the first piped file (the original input)
-   * @param pipeFileEncoding the first piped file character encoding
-   * @param outDupFile1 the second piped file (checked with itself)
-   * @param outDupFile2 the third piped file  (checked with DeDup index)
-   * @param outNoDupFile the ouput piped file with no duplicated records
-   * @param outDupFileEncoding the no duplicated record file character encoding
-   */
-  private def takeNoDuplicated(pipeFile: String,
-                               pipeFileEncoding: String,
-                               outDupFile1: String,
-                               outDupFile2: String,
-                               outNoDupFile: String,
-                               outDupFileEncoding: String): Unit = {
-    val ids = getIds(outDupFile1, outDupFileEncoding) ++
-              getIds(outDupFile2, outDupFileEncoding, onlyFirstId = true)
-    val codAction = CodingErrorAction.REPLACE
-    val encoder = Charset.forName(outDupFileEncoding).newEncoder()
-                  .onMalformedInput(codAction)
-                  .onUnmappableCharacter(codAction)
-    val decoder = Charset.forName(pipeFileEncoding).newDecoder()
-                  .onMalformedInput(codAction)
-                  .onUnmappableCharacter(codAction)
-    val in = Source.fromFile(pipeFile)(decoder)
-    val out = new BufferedWriter(new OutputStreamWriter(
-                 new FileOutputStream(outNoDupFile), encoder))
-    var first = true
-
-    in.getLines().foreach(
-      line => getIdFromLine(line).foreach(id =>
-        if (!ids.contains(id)) {
-          if (first) first = false else out.write("\n")
-          out.write(line)
-        } else ()
-      )
-    )
-    in.close()
-    out.close()
-  }
-
-  /** Given an output piped file resulting from NGrams check and returns all
-    * ids that identifies duplicated documents (if onlyFirstId is false) or
-    * the lower one from the duple (if onlyFirstId is true)
-    * @param outDupFile duplicated doc piped file
-    * @param outDupFileEncoding duplicated doc piped file encoding
-    * @param dropLines number of drop lines to remove the header
-    * @param onlyFirstId if true returns only the first id from both of duplicated
-    *                   docs otherwise it retuns both ids
-    * @param allowSameId if true both ids can be the same, if false only different
-    *                    ids are included
-    * @return a set of duplicated doc ids
-    */
-  private def getIds(outDupFile: String,
-                     outDupFileEncoding: String,
-                     dropLines: Int = 0,
-                     onlyFirstId: Boolean = false,
-                     allowSameId: Boolean = false): Set[String] = {
-    val codAction = CodingErrorAction.REPLACE
-    val decoder = Charset.forName(outDupFileEncoding).newDecoder()
-                  .onMalformedInput(codAction)
-                  .onUnmappableCharacter(codAction)
-    val reader = Source.fromFile(outDupFile)(decoder)
-    val in = reader.getLines()
-
-    // Skip header licenses lines
-    in.drop(dropLines)
-
-    val outSet = in.foldLeft[Set[String]](Set()) {
-      case (set, line) => getSimIdsFromLine(line) match {
-        case Some((id1,id2)) =>
-          if (onlyFirstId) set + id1
-          else if (allowSameId) set + (id1, id2)
-          else if (id1.equals(id2) && !allowSameId) set else set + (id1, id2)
-        case None => set
-      }
-    }
-    reader.close()
-    outSet
-  }
-
-  /** Given a NGrams output line (piped), retrives the two similar doc ids.
-    *
-    * @param line ids piped line
-    * @return an option
-    */
-  private def getSimIdsFromLine(line: String): Option[(String,String)] = {
-    val linet = line.trim()
-
-    if (linet.isEmpty) None
-    else {
-      val split = linet.split("\\|", 5)
-      if (split.length != 5) throw new IOException(linet)
-      Some((split(2), split(3)))
-    }
-  }
-
-  /** Given a NGrams input line (piped), retrives the doc id.
-    *
-    * @param line ids piped line
-    */
-  private def getIdFromLine(line: String): Option[String] = {
-    val linet = line.trim()
-
-    if (linet.isEmpty) None
-    else {
-      val split = linet.split("\\|", 3)
-      if (split.length != 3) throw new IOException(linet)
-      Some(split(1))
-    }
-  }
-
-  /** Deletes a standard file or a directory recursivelly
-    *
-    * @param file file or directory to be deleted
-    */
-  private def deleteFile(file: File): Unit = {
-    val contents = file.listFiles()
-    if (contents != null) contents.foreach(deleteFile)
-    file.delete()
   }
 
   /**

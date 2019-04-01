@@ -18,7 +18,7 @@ import scala.collection.mutable
 import collection.JavaConverters._
 
 /**
-* Object used to explain if a given input piped string representing a document is duplicated or not with another one
+* Object used to explain if a given input piped string representing a document is duplicated or not compared to another one
   * stored in a Lucene index (created from NGrams library) and represented by a document id.
   *
   * Author: Heitor Barbieri
@@ -277,7 +277,7 @@ object DocDuplicityExplain extends App {
     val query = new TermQuery(new Term("id", idn))
 
     val topDocs = searcher.search(query, 1)
-    if (topDocs.totalHits == 0) None
+    if (topDocs.totalHits.value == 0) None
     else Some(searcher.doc(topDocs.scoreDocs.head.doc))
   }
 }

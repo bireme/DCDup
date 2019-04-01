@@ -8,6 +8,8 @@
 package org.bireme.dcdup
 
 import java.nio.charset.Charset
+import java.text.Normalizer
+import java.text.Normalizer.Form
 import java.util
 
 object Tools {
@@ -20,4 +22,7 @@ object Tools {
 
     util.Arrays.equals(b1, b2)
   }
+
+  def normalize(in: String): String = Normalizer.normalize(in.trim().toLowerCase, Form.NFD)
+    .replaceAll("[^a-z0-9]", "")
 }

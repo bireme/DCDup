@@ -29,7 +29,7 @@ object CheckPipeFile extends App {
       "\n\nusage: CheckPipeFile" +
       "\n\t-pipe=<pipeFile> - input piped file" +
       "\n\t[-pipeEncoding=<encoding>] - piped file encoding. Default is utf-8" +
-      "\n\t-schemaUrl=<DeDup url> - url of a DeDup schema" +
+      "\n\t(-schemaUrl=<DeDup url>|-schemaFile=<path>) - DeDup schema location url or file path" +
       "\n\t-good=<file path> - file that contains piped lines following the schema" +
       "\n\t-bad=<file path> - file that contains piped lines that does not follow the schema"
     )
@@ -50,11 +50,20 @@ object CheckPipeFile extends App {
 
   val pipe = parameters("pipe")
   val encoding = parameters.getOrElse("pipeEncoding", "utf-8")
-  val schemaUrl = parameters("schemaUrl")
+  val schemaUrl = parameters.get("schemaUrl")
+  val schemaPath = parameters.get("schemaFile")
   val good = parameters("good")
   val bad = parameters("bad")
 
-  Try(VerifyPipeFile.check(pipe, encoding, schemaUrl, good, bad)) match {
+  Try {
+    schemaUrl match {
+      case Some(url) => VerifyPipeFile.checkRemote(pipe, encoding, url, good, bad)
+      case None => schemaPath match {
+        case Some(path) => VerifyPipeFile.checkLocal(pipe, encoding, path, good, bad)
+        case None => new IllegalArgumentException("use 'schemaUrl' or 'schemaPath'")
+      }
+    }
+  } match {
     case Success((goodDocs, badDocs)) =>
       println(s"Properly formatted lines: $goodDocs")
       println(s"Incorrectly formatted lines : $badDocs")
@@ -73,20 +82,20 @@ object CheckPipeFile extends App {
 object VerifyPipeFile {
 
   /**
-    * Check an input piped file against a DeDup schema file
+    * Check an input piped file against a local DeDup schema file
     *
     * @param pipe - input piped file to be checked
     * @param encoding - piped file character encoding
-    * @param schemaUrl - url of the DeDup schema page. For example: http://dedup.bireme.org/services/schema/LILACS_Sas_Seven
+    * @param schemaFile - Path to the DeDup schema file.
     * @param good - path of the temporary file having lines that follow the schema
     * @param bad - path of the temporary file having lines that do not follow the schema
     * @return (number of good lines, number of bad lines)
     */
-  def check(pipe: String,
-            encoding: String,
-            schemaUrl: String,
-            good: String,
-            bad: String): (Int, Int) = {
+  def checkLocal(pipe: String,
+                 encoding: String,
+                 schemaFile: String,
+                 good: String,
+                 bad: String): (Int, Int) = {
     val codAction = CodingErrorAction.REPLACE
     val encoder1 = Charset.forName(encoding).newEncoder()
                   .onMalformedInput(codAction)
@@ -99,12 +108,55 @@ object VerifyPipeFile {
                   .onUnmappableCharacter(codAction)
     val reader = Source.fromFile(pipe)(decoder)
     val lines = reader.getLines()
-    val source = Source.fromURL(schemaUrl, "utf-8")
+    val source = Source.fromFile(schemaFile, "utf-8")
     val schema = source.getLines().mkString(" ")
     val goodWriter = new BufferedWriter(new OutputStreamWriter(
                  new FileOutputStream(good), encoder1))
     val badWriter = new BufferedWriter(new OutputStreamWriter(
                  new FileOutputStream(bad), encoder2))
+    val (goodDocs, badDocs) = checkRaw(lines, schema, goodWriter, badWriter)
+
+    reader.close()
+    source.close()
+    goodWriter.close()
+    badWriter.close()
+
+    (goodDocs,badDocs)
+  }
+
+  /**
+    * Check an input piped file against a remote DeDup schema file
+    *
+    * @param pipe - input piped file to be checked
+    * @param encoding - piped file character encoding
+    * @param schemaUrl - url of the DeDup schema page. For example: http://dedup.bireme.org/services/schema/LILACS_Sas_Seven
+    * @param good - path of the temporary file having lines that follow the schema
+    * @param bad - path of the temporary file having lines that do not follow the schema
+    * @return (number of good lines, number of bad lines)
+    */
+  def checkRemote(pipe: String,
+                  encoding: String,
+                  schemaUrl: String,
+                  good: String,
+                  bad: String): (Int, Int) = {
+    val codAction = CodingErrorAction.REPLACE
+    val encoder1 = Charset.forName(encoding).newEncoder()
+      .onMalformedInput(codAction)
+      .onUnmappableCharacter(codAction)
+    val encoder2 = Charset.forName(encoding).newEncoder()
+      .onMalformedInput(codAction)
+      .onUnmappableCharacter(codAction)
+    val decoder = Charset.forName(encoding).newDecoder()
+      .onMalformedInput(codAction)
+      .onUnmappableCharacter(codAction)
+    val reader = Source.fromFile(pipe)(decoder)
+    val lines = reader.getLines()
+    val source = Source.fromURL(schemaUrl, "utf-8")
+    val schema = source.getLines().mkString(" ")
+    val goodWriter = new BufferedWriter(new OutputStreamWriter(
+      new FileOutputStream(good), encoder1))
+    val badWriter = new BufferedWriter(new OutputStreamWriter(
+      new FileOutputStream(bad), encoder2))
     val (goodDocs, badDocs) = checkRaw(lines, schema, goodWriter, badWriter)
 
     reader.close()
