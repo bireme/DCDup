@@ -24,8 +24,8 @@ import scala.collection.JavaConverters._
 object Search extends App {
   private def usage(): Unit = {
     System.err.println("usage: Search" +
-      "\n\t<indexPath> - Lucene index path" +
-      "\n\t<expression> - search expression" +
+      "\n\t-index=<indexPath> - Lucene index path" +
+      "\n\t-expr=<expression> - search expression" +
       "\n\t[-outFields=<fld1>,<fld2>,...,<fldn>] - Document fields to be shown. Default is all" +
       "\n\t[-count=<num>] - Number of documents to be shown. Default is all"
     )
@@ -34,7 +34,7 @@ object Search extends App {
 
   if (args.length < 2) usage()
 
-  val parameters = args.drop(2).foldLeft[Map[String,String]](Map()) {
+  val parameters = args.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
       val split = par.split(" *= *", 2)
       if (split.length == 2)
@@ -45,13 +45,15 @@ object Search extends App {
       }
   }
 
+  val index = parameters("index")
+  val expr = parameters("expr")
   val count = parameters.getOrElse("count", "9999").toInt
   val outFields = parameters.getOrElse("outFields", "")
   val fields = outFields.split(" *, *").foldLeft[Set[String]](Set()) {
     case (set, elem) => set + elem
   }
 
-  search(args(0), args(1), fields, count)
+  search(index, expr, fields, count)
 
   def search(indexPath: String,
              expression: String,

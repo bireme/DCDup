@@ -20,24 +20,36 @@ import org.apache.http.util.EntityUtils
 /**
   * Create a remote DeDup index from a piped file
   *
+  * author: Heitor Barbieri
   */
 object WebPipe2Lucene extends App {
   private def usage(): Unit = {
     System.err.println("usage: WebPipe2Lucene " +
-      "\n\t<pipeFile> - DeDup piped input file" +
-      "\n\t<pipeFileEncoding> - pipe file character encoding" +
-      "\n\t<DeDupBaseUrl> - DeDup url service" +
-      "\n\t<indexName> - DeDup index Name" +
-      "\n\t<schemaName> - DeDup schema name" +
+      "\n\t-pipe=<pipeFile> - DeDup piped input file" +
+      "\n\t-pipeFileEncod=<pipeFileEncoding> - pipe file character encoding" +
+      "\n\t-dedupUrl=<DeDupBaseUrl> - DeDup url service" +
+      "\n\t-index=<indexName> - DeDup index Name" +
+      "\n\t-schema=<schemaName> - DeDup schema name" +
       "\n\t[--resetIndex]")
     System.exit(1)
   }
 
   if (args.length < 5) usage()
 
-  val resetIndex = (args.length > 5) && args(5).equals("--resetIndex")
+  val parameters = args.foldLeft[Map[String,String]](Map()) {
+    case (map,par) =>
+      val split = par.split(" *= *", 2)
+      if (split.length == 1) map + ((split(0).substring(2), ""))
+      else map + ((split(0).substring(1), split(1)))
+  }
+  val pipe = parameters("pipe")
+  val pipeFileEncod = parameters("pipeFileEncod")
+  val dedupUrl = parameters("dedupUrl")
+  val index = parameters("index")
+  val schema = parameters("schema")
+  val resetIndex = parameters.contains("resetIndex")
 
-  convert(args(0), args(1), args(2), args(3), args(4), resetIndex)
+  convert(pipe, pipeFileEncod, dedupUrl, index, schema, resetIndex)
 
   def convert(pipeFile: String,
               pipeFileEncoding: String,

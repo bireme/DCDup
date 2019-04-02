@@ -19,15 +19,28 @@ import scala.collection.JavaConverters._
 
 object TestIndex extends App {
   private def usage(): Unit = {
-    Console.err.println("usage: TestIndex <indexDir> <schemaFile> [<schemaEncoding>]")
+    Console.err.println("TestIndex tests if the Lucene index documents follow a DeDup schema specification")
+    Console.err.println("usage: TestIndex")
+    Console.err.println("\t-index=<indexDir> - Lucene index path")
+    Console.err.println("\t-schema=<schemaFile> = file path with schema specification")
+    Console.err.println("\t[-schemaFileEncod=<schemaEncoding>] - schema file character encoding. Default is utf-8")
     System.exit(1)
   }
 
   if (args.length < 2) usage()
 
-  val encoding = if (args.length > 2) args(2) else "utf-8"
+  val parameters = args.foldLeft[Map[String,String]](Map()) {
+    case (map,par) =>
+      val split = par.split(" *= *", 2)
+      if (split.length == 1) map + ((split(0).substring(2), ""))
+      else map + ((split(0).substring(1), split(1)))
+  }
 
-  test(args(0), args(1), encoding)
+  val index = parameters("index")
+  val schema = parameters("schema")
+  val schemaFileEncod = parameters.getOrElse("schemaFileEncod", "utf-8")
+
+  test(index, schema, schemaFileEncod)
 
   def test(indexDir: String,
            schemaFile: String,

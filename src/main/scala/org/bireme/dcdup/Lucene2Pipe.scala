@@ -21,19 +21,31 @@ import scala.collection.JavaConverters._
 object Lucene2Pipe extends App {
   private def usage(): Unit = {
     System.err.println("usage: Lucene2Pipe" +
-      "\n\t<indexPath> - NGram's Lucene index path" +
-      "\n\t<schemaFile> - NGram schema file" +
-      "\n\t<schemaEncoding> - NGram schema file encoding" +
-      "\n\t<pipeFile> - output pipe file" +
-      "\n\t[<pipeEncoding>] - output pipe file encoding. Default is utf-8)"
+      "\n\t-index=<indexPath> - NGram's Lucene index path" +
+      "\n\t-schema=<schemaFile> - NGram schema file" +
+      "\n\t-pipeFile=<pipeFile> - output pipe file" +
+      "\n\t[-schemaFileEncod=<schemaEncoding>] - NGram schema file encoding" +
+      "\n\t[-pipeFileEncod=<pipeFileEncod>] - output pipe file encoding. Default is utf-8)"
     )
     System.exit(1)
   }
 
-  if (args.length < 4) usage()
-  val pipeEncoding = if (args.length > 4) args(4) else "utf-8"
+  if (args.length < 3) usage()
 
-  generatePipe(args(0), args(1), args(2), args(3), pipeEncoding)
+  val parameters = args.foldLeft[Map[String,String]](Map()) {
+    case (map,par) =>
+      val split = par.split(" *= *", 2)
+      if (split.length == 1) map + ((split(0).substring(2), ""))
+      else map + ((split(0).substring(1), split(1)))
+  }
+
+  val index = parameters("index")
+  val schema = parameters("schema")
+  val pipeFile = parameters("pipeFile")
+  val schemaFileEncod = parameters.getOrElse("schemaFileEncod", "utf-8")
+  val pipeFileEncod = parameters.getOrElse("pipeFileEncod", "utf-8")
+
+  generatePipe(index, schema, schemaFileEncod, pipeFile, pipeFileEncod)
 
   def generatePipe(indexPath: String,
                    schemaFile: String,
