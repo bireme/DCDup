@@ -81,13 +81,18 @@ class WebDoubleCheckDuplicated {
                   outDupFile2: String,
                   outNoDupFile: String,
                   outDupFileEncoding: String): Unit = {
+    // Check pipe file
+    println("\nChecking pipe file ...")
+    val (_, bad, goodFile) = checkPipeFile(pipeFile, pipeFileEncoding, s"${deDupBaseUrl.trim}/schema/$schemaName")
+    if (bad > 0) println("\nSkipping $bad bad lines from pipe file")
+
     val schemaStr = loadSchema(deDupBaseUrl, schemaName)
 //println(s"[$schemaStr]")
     val ngSchema = new NGSchema(schemaName, schemaStr)
 
     // Self check
     println("\nSelf check")
-    CheckDuplicated.checkDuplicated(pipeFile, pipeFileEncoding , None, ngSchema, outDupFile1,
+    CheckDuplicated.checkDuplicated(goodFile, pipeFileEncoding , None, ngSchema, outDupFile1,
       outNoDupFile + "_self", outDupFileEncoding)
 
     // Check using DeDup service
@@ -112,6 +117,7 @@ class WebDoubleCheckDuplicated {
     CheckDuplicated.deleteFile(new File(outDupFile2 + "_tmp"))
     CheckDuplicated.deleteFile(new File(outNoDupFile + "_self"))
     CheckDuplicated.deleteFile(new File(outNoDupFile + "_remote"))
+    CheckDuplicated.deleteFile(new File(goodFile))
   }
 
   /** Given an input piped file and a NGrams index, looks for documents that
@@ -158,6 +164,18 @@ class WebDoubleCheckDuplicated {
     }
     src.close()
     dest.close()
+  }
+
+  private def checkPipeFile(pipe: String,
+                            encoding: String,
+                            schemaUrl: String): (Int, Int, String) = {
+    val good: File = File.createTempFile("check_good", null)
+    val bad: File = File.createTempFile("check_bad", null)
+    val (numGood, numBad) = VerifyPipeFile.checkRemote(pipe, encoding, schemaUrl, good.getPath, bad.getPath)
+
+    bad.delete()
+
+    (numGood, numBad, good.getPath)
   }
 
   /** Checks some documents via DeDup webservice to look for similar docs.
