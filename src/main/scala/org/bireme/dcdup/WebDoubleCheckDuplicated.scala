@@ -92,27 +92,29 @@ class WebDoubleCheckDuplicated {
     val ngSchema = new NGSchema(schemaName, schemaStr)
 
     // Self check
-    println("\nSelf check")
+    println("\n***Self check")
     CheckDuplicated.checkDuplicated(goodFile, pipeFileEncoding , None, ngSchema, outDupFile1,
       outNoDupFile + "_self", outDupFileEncoding)
 
     // Check using DeDup service
-    println("\nRemote check")
+    println("\n***Remote check")
     remoteCheck(deDupBaseUrl, indexName, schemaName, pipeFile, pipeFileEncoding,
                                                 outDupFile2 + "_tmp", outDupFileEncoding)
 
-    println("OK\nPost processing remote duplicated files ... ")
+    print("OK\nPost processing remote duplicated files ... ")
     val dupIds: Map[String, Set[String]] =
       CheckDuplicated.postProcessDup(outDupFile2 + "_tmp", outDupFile2, outDupFileEncoding)
 
-    println("OK\nPost processing no duplicated remote files ... ")
+    print("OK\n\nPost processing no duplicated remote files ... ")
     val idsDup: Set[String] = dupIds.foldLeft(Set[String]()) ((set, kv) => set ++ (kv._2 + kv._1))
     CheckDuplicated.postProcessNoDup(pipeFile, pipeFileEncoding, ngSchema,
                                      outNoDupFile + "_remote", outDupFileEncoding, idsDup)
 
     // Remove duplication in the no duplicated documents file
+    print("OK\n\nRemoving duplicated lines ... ")
     CheckDuplicated.takeNoDuplicated(ngSchema, outNoDupFile + "_self", outNoDupFile + "_remote",
       outNoDupFile, outDupFileEncoding)
+    println("OK")
 
     // Delete pre-processed output files
     CheckDuplicated.deleteFile(new File(outDupFile2 + "_tmp"))

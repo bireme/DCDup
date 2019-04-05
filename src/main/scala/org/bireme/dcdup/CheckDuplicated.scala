@@ -50,13 +50,13 @@ object CheckDuplicated {
     val index = new NGIndex(indexPath, indexPath, true)
 
     // Self check
-    print("Looking for duplicated documents in piped file ... ")
+    println("Looking for duplicated documents in piped file ... ")
     check(index, ngSchema, pipeFile, pipeFileEncod, outDupFile + "_tmp", outDupEncod)
-    println("OK")
+    println("... OK")
 
-    println("Post processing duplicated files ... ")
+    print("Post processing duplicated files ... ")
     val dupIds: Map[String, Set[String]] = postProcessDup(outDupFile + "_tmp", outDupFile, outDupEncod)
-    println("OK\nPost processing no duplicated files ... ")
+    print("OK\nPost processing no duplicated files ... ")
     val idsDup: Set[String] = dupIds.foldLeft(Set[String]()) ((set, kv) => set ++ (kv._2 + kv._1))
     postProcessNoDup(pipeFile, pipeFileEncod, ngSchema, outNoDupFile, outDupEncod, idsDup)
     println("OK")
