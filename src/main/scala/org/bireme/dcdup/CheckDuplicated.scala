@@ -99,7 +99,7 @@ object CheckDuplicated {
     }
     in1.close()
 
-    val in2 = Source.fromFile(outNoDupFile2)
+    val in2 = Source.fromFile(outNoDupFile2, outDupFileEncoding)
     in2.getLines().foreach {
       line =>
         val lineT = line.trim
