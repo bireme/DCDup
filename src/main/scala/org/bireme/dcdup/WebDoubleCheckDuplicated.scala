@@ -83,8 +83,9 @@ class WebDoubleCheckDuplicated {
                   outDupFileEncoding: String): Unit = {
     // Check pipe file
     println("\nChecking pipe file ...")
-    val (_, bad, goodFile) = checkPipeFile(pipeFile, pipeFileEncoding, s"${deDupBaseUrl.trim}/schema/$schemaName")
-    if (bad > 0) println("\nSkipping $bad bad lines from pipe file")
+    val (_, bad, goodFile, badFile) =
+      checkPipeFile(pipeFile, pipeFileEncoding, s"${deDupBaseUrl.trim}/schema/$schemaName")
+    if (bad > 0) println(s"\nSkipping $bad bad lines from pipe file. See file: $badFile")
 
     val schemaStr = loadSchema(deDupBaseUrl, schemaName)
 //println(s"[$schemaStr]")
@@ -168,14 +169,12 @@ class WebDoubleCheckDuplicated {
 
   private def checkPipeFile(pipe: String,
                             encoding: String,
-                            schemaUrl: String): (Int, Int, String) = {
+                            schemaUrl: String): (Int, Int, String, String) = {
     val good: File = File.createTempFile("check_good", null)
     val bad: File = File.createTempFile("check_bad", null)
     val (numGood, numBad) = VerifyPipeFile.checkRemote(pipe, encoding, schemaUrl, good.getPath, bad.getPath)
 
-    bad.delete()
-
-    (numGood, numBad, good.getPath)
+    (numGood, numBad, good.getPath, bad.getPath)
   }
 
   /** Checks some documents via DeDup webservice to look for similar docs.

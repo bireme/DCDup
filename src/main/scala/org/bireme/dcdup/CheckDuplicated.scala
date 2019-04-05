@@ -50,7 +50,7 @@ object CheckDuplicated {
     val index = new NGIndex(indexPath, indexPath, true)
 
     // Self check
-    print("Creating duplicated file ... ")
+    print("Looking for duplicated documents in piped file ... ")
     check(index, ngSchema, pipeFile, pipeFileEncod, outDupFile + "_tmp", outDupEncod)
     println("OK")
 
@@ -83,7 +83,7 @@ object CheckDuplicated {
     val dbPos = ngSchema.getNamesPos.get("database")
     val elemNum = ngSchema.getNamesPos.size
     val out = Files.newBufferedWriter(Paths.get(outNoDupFile), Charset.forName(outDupFileEncoding))
-    val in1 = Source.fromFile(outNoDupFile1)
+    val in1 = Source.fromFile(outNoDupFile1, outDupFileEncoding)
     val ids = in1.getLines().foldLeft(Set[String]()) {
       case (set, line) =>
         val lineT = line.trim
@@ -194,7 +194,7 @@ object CheckDuplicated {
             if (!set.contains(id2)) {
               out.write(line + "\n")
               ids += (id1 -> (set + id2))
-              println(s"id1=$id1 id2=$id2 - ++++ DENTRO!")
+              //println(s"id1=$id1 id2=$id2 - ++++ DENTRO!")
             }
           }
         }
