@@ -259,11 +259,11 @@ object CheckDuplicated {
                     dbPos: Int,
                     elemNum: Int,
                     line: String): String = {
-    val split = line.split(" *\\| *", elemNum)
-    val idx = split(idPos)
-    val posx = idx.indexOf('-')
-    val pos = if (posx == -1) idx.length else posx
+    val split = line.split(" *\\| *", elemNum + 1)
+    val id = split(idPos)
+    val posx = id.indexOf('-')
+    val pos = if (posx == -1) id.length else posx
 
-    Tools.normalize(split(2).substring(0, pos) + split(dbPos))   //iddb
+    Tools.normalize(id.substring(0, pos) + split(dbPos))   //iddb
   }
 }
