@@ -85,11 +85,12 @@ object DoubleCheckDuplicated extends App {
       outNoDupFile + "_self", outDupFileEncoding)
 
     // Check using given Lucene indexPath
-    CheckDuplicated.checkDuplicated(pipeFile, pipeFileEncoding , Some(luceneIndex), ngSchema, outDupFile1,
+    CheckDuplicated.checkDuplicated(pipeFile, pipeFileEncoding , Some(luceneIndex), ngSchema, outDupFile2,
       outNoDupFile + "_remote", outDupFileEncoding)
 
     // Take duplicate no duplicated documents
-    CheckDuplicated.takeNoDuplicated(ngSchema, outDupFile1, outDupFile2, outNoDupFile, outDupFileEncoding)
+    CheckDuplicated.takeNoDuplicated(ngSchema, outNoDupFile + "_self", outNoDupFile + "_remote",
+      outNoDupFile, outDupFileEncoding)
 
     // Delete pre-processed output files
     CheckDuplicated.deleteFile(new File(outNoDupFile + "_self"))

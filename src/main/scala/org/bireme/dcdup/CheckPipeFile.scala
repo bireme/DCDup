@@ -67,6 +67,7 @@ object CheckPipeFile extends App {
     case Success((goodDocs, badDocs)) =>
       println(s"Properly formatted lines: $goodDocs")
       println(s"Incorrectly formatted lines : $badDocs")
+    case Success(_) => throw new IllegalArgumentException("Invalid file format")
     case Failure(e) => e match {
       case _: MalformedInputException =>
         println(s"==> The encoding[$encoding] specified as '-pipeEncoding' " +

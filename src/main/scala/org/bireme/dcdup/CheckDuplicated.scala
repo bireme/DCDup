@@ -50,13 +50,13 @@ object CheckDuplicated {
     val index = new NGIndex(indexPath, indexPath, true)
 
     // Self check
-    println("Looking for duplicated documents in piped file ... ")
+    println("Looking for duplicated documents in piped file (self check)... ")
     check(index, ngSchema, pipeFile, pipeFileEncod, outDupFile + "_tmp", outDupEncod)
     println("... OK")
 
     print("Post processing duplicated files ... ")
     val dupIds: Map[String, Set[String]] = postProcessDup(outDupFile + "_tmp", outDupFile, outDupEncod)
-    print("OK\nPost processing no duplicated files ... ")
+    print("OK\nPost processing no duplicated files (index)... ")
     val idsDup: Set[String] = dupIds.foldLeft(Set[String]()) ((set, kv) => set ++ (kv._2 + kv._1))
     postProcessNoDup(pipeFile, pipeFileEncod, ngSchema, outNoDupFile, outDupEncod, idsDup)
     println("OK")
@@ -84,7 +84,7 @@ object CheckDuplicated {
     val elemNum = ngSchema.getNamesPos.size
     val out = Files.newBufferedWriter(Paths.get(outNoDupFile), Charset.forName(outDupFileEncoding))
     val in1 = Source.fromFile(outNoDupFile1, outDupFileEncoding)
-    val ids = in1.getLines().foldLeft(Set[String]()) {
+    val ids: Set[String] = in1.getLines().foldLeft(Set[String]()) {
       case (set, line) =>
         val lineT = line.trim
         if (lineT.isEmpty) set
@@ -100,12 +100,17 @@ object CheckDuplicated {
     in1.close()
 
     val in2 = Source.fromFile(outNoDupFile2, outDupFileEncoding)
-    in2.getLines().foreach {
-      line =>
-        val lineT = line.trim
-        if (lineT.nonEmpty) {
-          val id = getId(idPos, dbPos, elemNum, lineT)
-          if (!ids.contains(id)) out.write(line + "\n")
+    in2.getLines().foldLeft(ids) {
+      case (set, line) =>
+        val lineT: String = line.trim
+        if (lineT.isEmpty) set
+        else {
+          val id: String = getId(idPos, dbPos, elemNum, lineT)
+          if (ids.contains(id)) set
+          else {
+            out.write(line + "\n")
+            set + id
+          }
         }
     }
     in2.close()
@@ -261,8 +266,8 @@ object CheckDuplicated {
                     line: String): String = {
     val split = line.split(" *\\| *", elemNum + 1)
     val id = split(idPos)
-    val posx = id.indexOf('-')
-    val pos = if (posx == -1) id.length else posx
+    val posHifen = id.indexOf('-')
+    val pos = if (posHifen == -1) id.length else posHifen
 
     Tools.normalize(id.substring(0, pos) + split(dbPos))   //iddb
   }
