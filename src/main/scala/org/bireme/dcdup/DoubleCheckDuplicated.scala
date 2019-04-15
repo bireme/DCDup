@@ -21,7 +21,7 @@ object DoubleCheckDuplicated extends App {
   private def usage(): Unit = {
     System.err.println("usage: DoubleCheckDuplicated " +
       "\n\t-pipeFile=<pipeFile> - DeDup piped input file" +
-      "\n\t-index<luceneIndex> - path to Dedup's Lucene index" +
+      "\n\t-index=<luceneIndex> - path to Dedup's Lucene index" +
       "\n\t-confFile=<confFile> - DeDup fields configuration file (schema)" +
       "\n\t-outDupFile1=<outDupFile1> - duplicated records found in pipe file" +
       "\n\t-outDupFile2=<outDupFile2> - duplicated records found between pipe file and Dedup index" +

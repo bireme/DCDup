@@ -30,7 +30,7 @@ object CheckDuplicated {
     * @param ngSchema DeDup data schema name. See http://dedup.bireme.org/services/schemas
     * @param outDupFile the name of the output no duplicated documents file
     * @param outNoDupFile the output file's character encoding
-    * @param outDupEncod the duplicated and no duplicated files' character encoding
+    * @param outDupEncod the duplicated and no duplicated files' character encoding. Default is utf-8
     */
   def checkDuplicated(pipeFile: String,
                       pipeFileEncod: String,
@@ -50,13 +50,13 @@ object CheckDuplicated {
     val index = new NGIndex(indexPath, indexPath, true)
 
     // Self check
-    println("Looking for duplicated documents in piped file (self check)... ")
+    println("Looking for duplicated documents in piped file... ")
     check(index, ngSchema, pipeFile, pipeFileEncod, outDupFile + "_tmp", outDupEncod)
     println("... OK")
 
     print("Post processing duplicated files ... ")
     val dupIds: Map[String, Set[String]] = postProcessDup(outDupFile + "_tmp", outDupFile, outDupEncod)
-    print("OK\nPost processing no duplicated files (index)... ")
+    print("OK\nPost processing no duplicated files... ")
     val idsDup: Set[String] = dupIds.foldLeft(Set[String]()) ((set, kv) => set ++ (kv._2 + kv._1))
     postProcessNoDup(pipeFile, pipeFileEncod, ngSchema, outNoDupFile, outDupEncod, idsDup)
     println("OK")
