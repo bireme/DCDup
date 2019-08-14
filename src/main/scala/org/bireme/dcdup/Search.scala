@@ -53,7 +53,7 @@ object Search extends App {
   val count: Int = parameters.getOrElse("count", "9999").toInt
   val outFields: String = parameters.getOrElse("outFields", "")
   val fields: Set[String] = outFields.split(" *, *").foldLeft[Set[String]](Set()) {
-    case (set, elem) => set + elem
+    case (set, elem) => if (elem.isEmpty) set else set + elem
   }
 
   search(index, expr, defField, fields, count)
@@ -76,17 +76,14 @@ object Search extends App {
     hits.take(count).foreach {
       hit =>
         val doc: Document = isearcher.doc(hit.doc)
+        println(s"\n+++ Document[${hit.doc}] +++")
         if (fields.isEmpty)
           doc.getFields().asScala.foreach {
-            ie: IndexableField =>
-              println("=====================================================")
-              println(s"[${ie.name}]:${ie.stringValue}")
+            ie: IndexableField => println(s"[${ie.name}]:${ie.stringValue}")
           }
         else fields.foreach {
           fld => doc.getFields(fld).foreach {
-            ie =>
-              println("=====================================================")
-              println(s"[${ie.name}]:${ie.stringValue}")
+            ie: IndexableField => println(s"[${ie.name}]:${ie.stringValue}")
           }
         }
     }
