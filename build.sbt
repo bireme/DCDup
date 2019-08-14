@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   organization := "br.bireme",
   version := "0.1.0",
-  scalaVersion := "2.12.8" //"2.12.7"
+  scalaVersion := "2.13.0" //"2.12.8"
 )
 
 lazy val root = (project in file(".")).
@@ -10,17 +10,17 @@ lazy val root = (project in file(".")).
     name := "DCDup"
   )
 
-val commonsLangVersion = "3.8.1" // "3.7"
-val commonsTextVersion = "1.6" // "1.4"
-val luceneVersion = "8.0.0" // "7.7.1"
-val jacksonVersion = "2.9.8" // "2.9.7"
-val httpClientVersion = "4.5.7" // "4.5.6"
-val scalajHttpVersion = "2.4.1"
-val mySQLVersion = "8.0.15" // "8.0.13"
+val commonsLangVersion = "3.9" //"3.8.1"
+val commonsTextVersion = "1.7" //"1.6"
+val luceneVersion = "8.2.0" //"8.0.0"
+val jacksonVersion = "2.9.9"
+val httpClientVersion = "4.5.9" //"4.5.7"
+val scalajHttpVersion = "2.4.2" //"2.4.1"
+val mySQLVersion = "8.0.17" // "8.0.15"
 val logBackVersion = "1.2.3"
 val circeParserVersion = "0.11.1" // "0.10.0"
-val scalaTestVersion = "3.0.7" //"3.0.6"
-val hairyfotrVersion = "0.1.17"
+val scalaTestVersion = "3.0.8" //"3.0.7"
+//val hairyfotrVersion = "0.1.17"
 
 libraryDependencies ++= Seq(
   "org.apache.commons" % "commons-lang3" % commonsLangVersion,
@@ -46,4 +46,4 @@ logBuffered in Test := false
 trapExit := false
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Ywarn-unused")
-addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % hairyfotrVersion)
+//addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % hairyfotrVersion)

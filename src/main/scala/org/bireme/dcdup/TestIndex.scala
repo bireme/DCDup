@@ -15,7 +15,7 @@ import org.apache.lucene.document.Document
 import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.store.FSDirectory
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 object TestIndex extends App {
   private def usage(): Unit = {

@@ -16,8 +16,11 @@ import org.apache.lucene.document.Document
 import org.apache.lucene.index.{DirectoryReader, MultiBits}
 import org.apache.lucene.store.FSDirectory
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
+/**
+  * Generate a pipe file with the documents stored in a Lucene index
+*/
 object Lucene2Pipe extends App {
   private def usage(): Unit = {
     System.err.println("usage: Lucene2Pipe" +
@@ -47,6 +50,14 @@ object Lucene2Pipe extends App {
 
   generatePipe(index, schema, schemaFileEncod, pipeFile, pipeFileEncod)
 
+  /**
+  * Write a pipe file with the documents stored in a Lucene index
+    * @param indexPath Lucene index path
+    * @param schemaFile Ngrams schema file path
+    * @param schemaEncoding Ngrams schema file encoding
+    * @param pipeFile output pipe file
+    * @param pipeEncoding output pipe file encoding
+    */
   def generatePipe(indexPath: String,
                    schemaFile: String,
                    schemaEncoding: String,
@@ -54,7 +65,7 @@ object Lucene2Pipe extends App {
                    pipeEncoding: String): Unit = {
 
     val schema = new NGSchema("schema", schemaFile, schemaEncoding)
-    val fields = mapAsScalaMap(schema.getPosNames).toList
+    val fields = schema.getPosNames.asScala.toList
     val out = Files.newBufferedWriter(Paths.get(pipeFile),
                                       Charset.forName(pipeEncoding))
     val directory = FSDirectory.open(Paths.get(indexPath))
@@ -75,6 +86,12 @@ object Lucene2Pipe extends App {
     out.close()
   }
 
+  /**
+  * Write a Lucene document into a pipe file
+    * @param doc Lucene document
+    * @param fields the name of the document fields
+    * @param out pipe file writer
+    */
   private def exportDoc(doc: Document,
                         fields: List[(Integer,String)],
                         out: Writer): Unit = {

@@ -38,7 +38,7 @@ object CheckDuplicated {
                       ngSchema: NGSchema,
                       outDupFile: String,
                       outNoDupFile: String,
-                      outDupEncod: String = "utf-8") {
+                      outDupEncod: String = "utf-8"): Unit = {
 
     val time = Calendar.getInstance().getTimeInMillis.toString
     val indexPath = luceneIndex.getOrElse {
@@ -186,22 +186,24 @@ object CheckDuplicated {
         val linet = line.trim
         if (linet.nonEmpty) {
           val split = linet.split(" *\\| *", 8)  // ranking|similarity|id1|id2|tit1|tit2|db1|db2
-          val pos1x = split(2).indexOf('-')
-          val pos2x = split(3).indexOf('-')
-          val pos1 = if (pos1x == -1) split(2).length else pos1x
-          val pos2 = if (pos2x == -1) split(3).length else pos2x
-          val id1x = Tools.normalize(split(2).substring(0, pos1) + split(6))   //id1db1
-          val id2x = Tools.normalize(split(3).substring(0, pos2) + split(7))   //id2db2
-          val (id1, id2) = if (id1x.compareTo(id2x) <= 0) (id1x,id2x) else (id2x,id1x)
+          if (split.length == 8) {
+            val pos1x = split(2).indexOf('-')
+            val pos2x = split(3).indexOf('-')
+            val pos1 = if (pos1x == -1) split(2).length else pos1x
+            val pos2 = if (pos2x == -1) split(3).length else pos2x
+            val id1x = Tools.normalize(split(2).substring(0, pos1) + split(6)) //id1db1
+            val id2x = Tools.normalize(split(3).substring(0, pos2) + split(7)) //id2db2
+            val (id1, id2) = if (id1x.compareTo(id2x) <= 0) (id1x, id2x) else (id2x, id1x)
 
-          if (!id1.equals(id2)) {
-            val set = ids.getOrElse(id1, Set[String]())
-            if (!set.contains(id2)) {
-              out.write(line + "\n")
-              ids += (id1 -> (set + id2))
-              //println(s"id1=$id1 id2=$id2 - ++++ DENTRO!")
+            if (!id1.equals(id2)) {
+              val set = ids.getOrElse(id1, Set[String]())
+              if (!set.contains(id2)) {
+                out.write(line + "\n")
+                ids += (id1 -> (set + id2))
+                //println(s"id1=$id1 id2=$id2 - ++++ DENTRO!")
+              }
             }
-          }
+          } else println("skipping line: " + linet)
         }
     }
     in.close()

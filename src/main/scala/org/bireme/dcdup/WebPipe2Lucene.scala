@@ -77,10 +77,10 @@ object WebPipe2Lucene extends App {
     var cur = 0
 
     new LineBatchIterator(src.getLines(), quantity).foreach {
-        println(s"<<< $cur")
         batch =>
-        rsend(deDupBaseUrl, indexName, schemaName, batch)
-        cur += quantity
+          println(s"<<< $cur")
+          rsend(deDupBaseUrl, indexName, schemaName, batch)
+          cur += quantity
     }
     src.close()
   }

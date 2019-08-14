@@ -18,8 +18,9 @@ import org.apache.lucene.search.spell.NGramDistance
 import org.apache.lucene.store.FSDirectory
 import org.apache.lucene.util.Bits
 
-import scala.collection.JavaConverters._
 import scala.collection.immutable.TreeMap
+import scala.jdk.CollectionConverters._
+import scala.math.Ordering.Float.TotalOrdering
 
 /**
 * Look for documents whose field is similar to the input text
@@ -98,7 +99,8 @@ object SimilarFieldDocs extends App {
     writer.write(fldText + "\n\n")
 
     val sim : Map[Float, Set[Int]] =
-      findSimilars(inText, iterator, fldName, ngDistance, new TreeMap[Float,Set[Int]], 0, 0)
+      findSimilars(inText, iterator, fldName, ngDistance,
+        new TreeMap[Float,Set[Int]].empty, 0, 0)
 
     val simTree: TreeMap[Float, Set[Int]] = TreeMap[Float, Set[Int]]()(Ordering[Float].reverse) ++ sim
     simTree foreach {
@@ -126,6 +128,7 @@ object SimilarFieldDocs extends App {
 
   /**
   * Find documents whose field is similiar to the input text
+    *
     * @param inText input text used to find similar documents
     * @param iterator (id, document) iterator
     * @param fldName name of the field used to compare similarity with the input text
@@ -135,6 +138,7 @@ object SimilarFieldDocs extends App {
     * @param current order number of the current document to look for similiar ones
     * @return a TreeMap of (similariy,doc Id) tuples found of the similar documents
     */
+  @scala.annotation.tailrec
   private def findSimilars(inText: String,
                            iterator: DocumentIterator,
                            fldName: String,
@@ -195,6 +199,7 @@ object SimilarFieldDocs extends App {
   private def getSimDocs(reader: DirectoryReader,
                          simTree: TreeMap[Float, Set[Int]],
                          num: Int): String = {
+    @scala.annotation.tailrec
     def getIds(iterator: Iterator[(Float, Set[Int])],
                aux: Seq[(Float, Int)],
                remain: Int): Seq[(Float, Int)] = {
@@ -204,6 +209,7 @@ object SimilarFieldDocs extends App {
       }
       else aux
     }
+    @scala.annotation.tailrec
     def getIds2(ids: (Float,Set[Int]),
                 aux: Seq[(Float, Int)],
                 remain: Int): Seq[(Float,Int)] = {
@@ -211,7 +217,7 @@ object SimilarFieldDocs extends App {
       else getIds2((ids._1,ids._2.tail), aux :+ ((ids._1, ids._2.head)), remain - 1)
     }
 
-    val builder: StringBuilder =  StringBuilder.newBuilder
+    val builder: StringBuilder =  new StringBuilder()
 
     getIds(simTree.iterator, Seq[(Float, Int)](), num) foreach {
       case (sim,id) =>
@@ -245,8 +251,10 @@ class DocumentIterator(indexPath: String) extends Iterator[(Int, Document)] {
 
   /**
   * Internal hasNext of the Iterator interface
+ *
     * @return true if has a next object of false otherwise
     */
+  @scala.annotation.tailrec
   private def hasNext0: Boolean = {
     if (cur < max) {
       if ((liveDocs == null) || liveDocs.get(cur)) true       // there is no deleted document OR document is active

@@ -15,7 +15,7 @@ import org.apache.lucene.search.{IndexSearcher, TermQuery}
 import org.apache.lucene.search.spell.NGramDistance
 
 import scala.collection.mutable
-import collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /**
 * Object used to explain if a given input piped string representing a document is duplicated or not compared to another one
@@ -105,10 +105,8 @@ object DocDuplicityExplain extends App {
     val analyzer: NGAnalyzer = ngIndex.getAnalyzer.asInstanceOf[NGAnalyzer]
     val ngDistance = new NGramDistance(analyzer.getNgramSize)
     val params: Parameters = schema.getParameters
-    val fields: Map[Int, Field] = params.getSearchFields.asScala.map(kv => (kv._1.toInt, kv._2)).toMap
+    val fields: Map[Int, Field] = params.getSearchFields.asScala.map[Int,Field](kv => (kv._1.toInt, kv._2)).toMap
     val fields2: java.util.Map[String, Field] = params.getNameFields
-
-
     val results: Seq[(Int,Int)] = fields.foldLeft(Seq[(Int,Int)]()) {
       case (seq, fld: (Int, Field)) =>
         val check: Int = NGrams.checkField(ngDistance, fld._2, doc, fields2, doc2)
@@ -160,13 +158,13 @@ object DocDuplicityExplain extends App {
                            fields: Map[Int, Field],
                            doc1: Array[String],
                            doc2: Document): String = {
-    val builder: StringBuilder =  StringBuilder.newBuilder
+    val builder: StringBuilder =  new StringBuilder()
     val sortedResult: Seq[(Int,Int)] = results.sortWith((res1, res2) => res1._1 <= res2._1)
 
     getDocs(doc1, doc2, fields, builder)
 
-    val (matchedFields: Int, maxScore: Boolean) = sortedResult.foldLeft(0, false) {
-      case ((tot,bool), (pos, result)) =>
+    val (matchedFields: Int, maxScore: Boolean) = sortedResult.foldLeft[(Int, Boolean)](0, false) {
+      case ((tot, bool), (pos, result)) =>
         result match {
           case -1 =>
             builder.append(s"\nField[$pos,'${fields(pos).name}']: does NOT match")
@@ -258,7 +256,7 @@ object DocDuplicityExplain extends App {
 
     val split: Array[String] = StringEscapeUtils.unescapeHtml4(doc).replace(':', ' ').trim
                                                    .split(" *\\| *", Integer.MAX_VALUE)
-    val fields: Map[Int, Field] = params.getSearchFields.asScala.map(kv =>  (kv._1.toInt, kv._2)).toMap
+    val fields: Map[Int, Field] = params.getSearchFields.asScala.map[Int,Field](kv =>  (kv._1.toInt, kv._2)).toMap
 
     if (split.length == fields.size) Some(split)
     else None

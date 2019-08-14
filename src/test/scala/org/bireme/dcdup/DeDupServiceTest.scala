@@ -53,7 +53,7 @@ class DeDupServiceTest extends FlatSpec {
     val urlStr = uri.toASCIIString
 
     var content = ""
-    failAfter(timeout = 60 seconds) {
+    failAfter(timeout = 60.seconds) {
       val source = Source.fromURL(urlStr, "utf-8")
       content = source.getLines().mkString("\n")
       source.close()
@@ -62,7 +62,7 @@ class DeDupServiceTest extends FlatSpec {
     content
   }
 
-  val service = /*"http://localhost:8084/DeDup"*/ "http://dedup.bireme.org"
+  val service = /* "http://localhost:8084/DeDup" */ "http://dedup.bireme.org"
 
   // === Check if the server is accessible ===
   "The DeDup Service page" should "be on" in {
@@ -78,7 +78,7 @@ class DeDupServiceTest extends FlatSpec {
 
   // === Check if the Similar Documents applet is available ===
   "The Similar Documents Service servlet" should "be on" in {
-    val opt = "\\<option value=\"lilacs_Sas\"(\\s+selected)?\\s+\\>lilacs_Sas\\</option\\>".r
+    val opt = "<option value=\"lilacs_Sas\"(\\s+selected)?\\s+>lilacs_Sas</option>".r
     val url = s"$service/services"
     val content = pageContent(url)
 

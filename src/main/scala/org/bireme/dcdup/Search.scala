@@ -9,13 +9,14 @@ package org.bireme.dcdup
 
 import java.nio.file.Paths
 
-import org.apache.lucene.analysis.standard.StandardAnalyzer
-import org.apache.lucene.index.DirectoryReader
+import br.bireme.ngrams.NGAnalyzer
+import org.apache.lucene.document.Document
+import org.apache.lucene.index.{DirectoryReader, IndexableField}
 import org.apache.lucene.queryparser.classic.QueryParser
-import org.apache.lucene.search.IndexSearcher
+import org.apache.lucene.search.{IndexSearcher, Query, ScoreDoc}
 import org.apache.lucene.store.FSDirectory
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /**
   * Search for documents into a Lucene index
@@ -25,16 +26,17 @@ object Search extends App {
   private def usage(): Unit = {
     System.err.println("usage: Search" +
       "\n\t-index=<indexPath> - Lucene index path" +
-      "\n\t-expr=<expression> - search expression" +
+      "\n\t-expr=<expression> - Search expression" +
+      "\n\t-defField=<def>    - Default search field" +
       "\n\t[-outFields=<fld1>,<fld2>,...,<fldn>] - Document fields to be shown. Default is all" +
-      "\n\t[-count=<num>] - Number of documents to be shown. Default is all"
+      "\n\t[-count=<num>]     - Number of documents to be shown. Default is all"
     )
     System.exit(1)
   }
 
-  if (args.length < 2) usage()
+  if (args.length < 3) usage()
 
-  val parameters = args.foldLeft[Map[String,String]](Map()) {
+  val parameters: Map[String, String] = args.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
       val split = par.split(" *= *", 2)
       if (split.length == 2)
@@ -45,36 +47,38 @@ object Search extends App {
       }
   }
 
-  val index = parameters("index")
-  val expr = parameters("expr")
-  val count = parameters.getOrElse("count", "9999").toInt
-  val outFields = parameters.getOrElse("outFields", "")
-  val fields = outFields.split(" *, *").foldLeft[Set[String]](Set()) {
+  val index: String = parameters("index")
+  val expr: String = parameters("expr")
+  val defField: String = parameters("defField")
+  val count: Int = parameters.getOrElse("count", "9999").toInt
+  val outFields: String = parameters.getOrElse("outFields", "")
+  val fields: Set[String] = outFields.split(" *, *").foldLeft[Set[String]](Set()) {
     case (set, elem) => set + elem
   }
 
-  search(index, expr, fields, count)
+  search(index, expr, defField, fields, count)
 
   def search(indexPath: String,
              expression: String,
+             defField: String,
              fields: Set[String],
              count: Int): Unit = {
-    val directory = FSDirectory.open(Paths.get(indexPath))
-    val direader = DirectoryReader.open(directory)
-    val isearcher = new IndexSearcher(direader)
-    val analyzer = new StandardAnalyzer()
-    val parser = new QueryParser("", analyzer)
-    val query = parser.parse(expression)
-    val hits = isearcher.search(query, count).scoreDocs
+    val directory: FSDirectory = FSDirectory.open(Paths.get(indexPath))
+    val direader: DirectoryReader = DirectoryReader.open(directory)
+    val isearcher: IndexSearcher = new IndexSearcher(direader)
+    val analyzer: NGAnalyzer = new NGAnalyzer(true)//new StandardAnalyzer()
+    val parser: QueryParser = new QueryParser(defField, analyzer)
+    val query: Query = parser.parse(expression)
+    val hits: Array[ScoreDoc] = isearcher.search(query, Integer.MAX_VALUE).scoreDocs
 
-    println(s"Total hits:${hits.size}\n")
+    println(s"Total hits:${hits.length}\n")
 
-    hits.foreach {
+    hits.take(count).foreach {
       hit =>
-        val doc = isearcher.doc(hit.doc)
+        val doc: Document = isearcher.doc(hit.doc)
         if (fields.isEmpty)
           doc.getFields().asScala.foreach {
-            ie =>
+            ie: IndexableField =>
               println("=====================================================")
               println(s"[${ie.name}]:${ie.stringValue}")
           }

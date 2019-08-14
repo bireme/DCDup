@@ -65,13 +65,13 @@ object MySQL2Pipe extends App {
   val user = parameters("user")
   val pswd = parameters("pswd")
   val dbnm = parameters("dbnm")
-  val sqlfs = parameters("sqls").trim.split(" *\\, *").toSet
+  val sqlfs = parameters("sqls").trim.split(" *, *").toSet
   val pipe = parameters("pipe")
   val port = parameters.getOrElse("port", "3306")
   val sqlEncoding = parameters.getOrElse("sqlEncoding", "utf-8")
   val pipeEncoding = parameters.getOrElse("pipeEncoding", "utf-8")
-  val jsonField = parameters.getOrElse("jsonField", "text,_f").trim.split(" *\\, *").toSet
-  val repetitiveField = parameters.getOrElse("repetitiveField", "title").trim.split(" *\\, *").toSet
+  val jsonField = parameters.getOrElse("jsonField", "text,_f").trim.split(" *, *").toSet
+  val repetitiveField = parameters.getOrElse("repetitiveField", "title").trim.split(" *, *").toSet
   val repetitiveSep = parameters.getOrElse("repetitiveSep", "//@//")
   val jsonLangField = parameters.getOrElse("jsonLangField", "_i")
   val idFieldName = parameters.getOrElse("idFieldName", "reference_ptr_id").toLowerCase
