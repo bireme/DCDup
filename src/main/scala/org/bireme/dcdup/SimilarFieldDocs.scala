@@ -19,8 +19,9 @@ import org.apache.lucene.store.FSDirectory
 import org.apache.lucene.util.Bits
 
 import scala.collection.immutable.TreeMap
-import scala.jdk.CollectionConverters._
-import scala.math.Ordering.Float.TotalOrdering
+//import scala.jdk.CollectionConverters._    scala 2.13.0
+import scala.collection.JavaConverters._
+//import scala.math.Ordering.Float.TotalOrdering  scala 2.13.0
 
 /**
 * Look for documents whose field is similar to the input text

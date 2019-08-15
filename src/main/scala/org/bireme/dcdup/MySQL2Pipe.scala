@@ -153,8 +153,8 @@ object MySQL2Pipe extends App {
                            repetitiveFields: Set[String],
                            repetitiveSep: String): Unit = {
     val codec = sqlEncoding.toLowerCase match {
-      case "iso8859-1" => Codec.ISO8859
-      case _           => Codec.UTF8
+      case "iso8859-1" => scala.io.Codec.ISO8859
+      case _           => scala.io.Codec.UTF8
     }
     val codAction = CodingErrorAction.REPLACE
     val decoder = codec.decoder.onMalformedInput(codAction)

@@ -27,9 +27,10 @@ import org.scalatest.Matchers._
 import org.scalatest._
 import org.scalatest.concurrent.Timeouts._
 import org.scalatest.time.SpanSugar._
-import scalaj.http.Http
+import scalaj.http.{Http, HttpRequest}
 
 import scala.io._
+import scala.util.matching.Regex
 
 /** Application which uses ScalaTest to check each function from DeDup Service
 *
@@ -47,14 +48,14 @@ class DeDupServiceTest extends FlatSpec {
   private def pageContent(url:String): String = {
     require(url != null)
 
-    val url2= new URL(url)
-    val uri = new URI(url2.getProtocol, url2.getUserInfo, url2.getHost,
+    val url2: URL = new URL(url)
+    val uri: URI = new URI(url2.getProtocol, url2.getUserInfo, url2.getHost,
                      url2.getPort, url2.getPath, url2.getQuery, url2.getRef)
-    val urlStr = uri.toASCIIString
+    val urlStr: String = uri.toASCIIString
 
-    var content = ""
+    var content: String = ""
     failAfter(timeout = 60.seconds) {
-      val source = Source.fromURL(urlStr, "utf-8")
+      val source: BufferedSource = Source.fromURL(urlStr, "utf-8")
       content = source.getLines().mkString("\n")
       source.close()
     }
@@ -62,13 +63,13 @@ class DeDupServiceTest extends FlatSpec {
     content
   }
 
-  val service = /* "http://localhost:8084/DeDup" */ "http://dedup.bireme.org"
+  val service = /*"http://localhost:8084/DeDup"*/ /*"http://serverofi5.bireme.br:8180/DeDup"*/ "http://dedup.bireme.org"
 
   // === Check if the server is accessible ===
   "The DeDup Service page" should "be on" in {
-    val title = "<title>([^<]+)</title>".r
-    val url = s"$service"
-    val content = pageContent(url)
+    val title: Regex = "<title>([^<]+)</title>".r
+    val url: String = s"$service"
+    val content: String = pageContent(url)
 
     title.findFirstMatchIn(content) match {
       case Some(mat) => mat.group(1) should be ("DeDup - Finding duplicated records")
@@ -78,40 +79,40 @@ class DeDupServiceTest extends FlatSpec {
 
   // === Check if the Similar Documents applet is available ===
   "The Similar Documents Service servlet" should "be on" in {
-    val opt = "<option value=\"lilacs_Sas\"(\\s+selected)?\\s+>lilacs_Sas</option>".r
-    val url = s"$service/services"
-    val content = pageContent(url)
+    val opt: Regex = "<option value=\"lilacs_Sas\"(\\s+selected)?\\s+>lilacs_Sas</option>".r
+    val url: String = s"$service/services"
+    val content: String = pageContent(url)
 
     content should include regex opt
   }
 
   // === Check the 'Show Schemas' service ===
   "The user" should "retrieve all DeDup schemas" in {
-  val url = s"$service/services/schemas"
-  val content = pageContent(url)
+  val url: String = s"$service/services/schemas"
+  val content: String = pageContent(url)
 
   content should include regex "LILACS_Sas_Seven"
   }
 
   // === Check the 'Show Indexes' service ===
   "The user" should "retrieve all DeDup indexes" in {
-    val url = s"$service/services/indexes"
-    val content = pageContent(url)
+    val url: String = s"$service/services/indexes"
+    val content: String = pageContent(url)
 
     content should include regex "lilacs_Sas"
   }
 
   // === Check the 'Show One Schema' service ===
   "The user" should "retrieve 'LILACS_Sas_Seven' schema" in {
-    val url = s"$service/services/schema/LILACS_Sas_Seven"
-    val content = pageContent(url)
+    val url: String = s"$service/services/schema/LILACS_Sas_Seven"
+    val content: String = pageContent(url)
 
     content should include regex "\"name\":\"LILACS_Sas_Seven\""
   }
 
   // === Check the "Duplicates (GET)" service ===
   "The user" should "retrieve similar documents" in {
-    val url = s"$service/services/get/duplicates/" +
+    val url: String = s"$service/services/get/duplicates/" +
     "?database=lilacs_Sas" +
     "&schema=LILACS_Sas_Seven" +
     "&quantity=1" +
@@ -124,9 +125,9 @@ class DeDupServiceTest extends FlatSpec {
     "&autores=Ferlin, Lúcia Helena Mian//@//Daruge, Angelica Dolcimascolo//@//Daruge, Rudiney Jefferson//@//Rancan, Sandra Valéria" +
     "&pagina_inicial=239"
 
-    val content = pageContent(url)
-    val similarity = "\"similarity\":\"([^\"]+)\"".r
-    val simVal = similarity.findFirstMatchIn(content) match {
+    val content: String = pageContent(url)
+    val similarity: Regex = "\"similarity\":\"([^\"]+)\"".r
+    val simVal: Float = similarity.findFirstMatchIn(content) match {
       case Some(mat) => mat.group(1).toFloat
       case None => 0f
     }
@@ -139,7 +140,7 @@ class DeDupServiceTest extends FlatSpec {
       "?database=lilacs_Sas" +
       "&id=fake*"
 
-    val content = pageContent(url)
+    val content: String = pageContent(url)
 
     content should include regex "OK"
   }
@@ -147,10 +148,10 @@ class DeDupServiceTest extends FlatSpec {
   // === Check the insertion of one fake document (wrong version) ===
   "The user" should "be able to insert a fake document (wrong version)" in {
     val http = Http(s"$service/services/raw/put/lilacs_Sas/LILACS_Sas_Seven")
-    val parameters =
+    val parameters: String =
       "lilacs_Sas|fake|Como eu sou uma pessoa maravilhosa.|Verdades Universais|2019|1|1|Heitor Barbiere|15"
 
-    val content = http.postData(parameters).header("content-type", "text/plain;charset=utf-8").asString.body
+    val content: String = http.postData(parameters).header("content-type", "text/plain;charset=utf-8").asString.body
 
     content shouldBe "OK"
   }
@@ -161,14 +162,14 @@ class DeDupServiceTest extends FlatSpec {
     val parameters =
       "lilacs_Sas|fake|Como eu sou uma pessoa maravilhosa.|Verdades Universais|2019|1|1|Heitor Barbieri|15"
 
-    val content = http.postData(parameters).header("content-type", "text/plain;charset=utf-8").asString.body
+    val content: String = http.postData(parameters).header("content-type", "text/plain;charset=utf-8").asString.body
 
     content shouldBe "OK"
   }
 
   // === Check the "Duplicates (GET)" service ===
   "The user" should "retrieve similar documents of the fake document" in {
-    val url = s"$service/services/get/duplicates/" +
+    val url: String = s"$service/services/get/duplicates/" +
       "?database=lilacs_Sas" +
       "&schema=LILACS_Sas_Seven" +
       "&quantity=2" +
@@ -182,14 +183,14 @@ class DeDupServiceTest extends FlatSpec {
       "&pagina_inicial=15"
 
 
-    val content = pageContent(url)
-    val similarity = "\"similarity\":\"([^\"]+)\"".r
-    val total = ",\"total\":(\\d+),".r
-    val simVal = similarity.findFirstMatchIn(content) match {
+    val content: String = pageContent(url)
+    val similarity: Regex = "\"similarity\":\"([^\"]+)\"".r
+    val total: Regex = ",\"total\":(\\d+),".r
+    val simVal: Float = similarity.findFirstMatchIn(content) match {
       case Some(mat) => mat.group(1).toFloat
       case None => 0f
     }
-    val totVal = total.findFirstMatchIn(content) match {
+    val totVal: Int = total.findFirstMatchIn(content) match {
       case Some(tot) => tot.group(1).toInt
       case None => 0
     }
@@ -206,7 +207,7 @@ class DeDupServiceTest extends FlatSpec {
       "?database=lilacs_Sas" +
       "&id=fake"
 
-    val content = pageContent(url)
+    val content: String = pageContent(url)
 
     content should include regex "OK"
   }
@@ -222,38 +223,38 @@ class DeDupServiceTest extends FlatSpec {
       "&titulo_revista=Verdades Universais" +
       "&ano_publicacao=2019"
 
-    val content = pageContent(url)
-    val similarity = "\"similarity\":\"([^\"]+)\"".r
-    val found = similarity.findFirstMatchIn(content).isDefined
+    val content: String = pageContent(url)
+    val similarity: Regex = "\"similarity\":\"([^\"]+)\"".r
+    val found: Boolean = similarity.findFirstMatchIn(content).isDefined
 
     found shouldBe false
   }
 
   // === Check the insertion of one fake document (Portuguese version) ===
   "The user" should "be able to insert a fake document (Portuguese)" in {
-    val http = Http(s"$service/services/raw/put/lilacs_Sas/LILACS_Sas_Seven")
-    val parameters =
+    val http: HttpRequest = Http(s"$service/services/raw/put/lilacs_Sas/LILACS_Sas_Seven")
+    val parameters: String =
       "lilacs_Sas|fake-pt|Sou um ser iluminado e maravilhoso.|Verdades Universais|2019|1|1|Heitor Barbieri|15"
 
-    val content = http.postData(parameters).header("content-type", "text/plain;charset=utf-8").asString.body
+    val content: String = http.postData(parameters).header("content-type", "text/plain;charset=utf-8").asString.body
 
     content shouldBe "OK"
   }
 
   // === Check the insertion of one fake document (Spanish version) ===
   "The user" should "be able to insert a fake document (English)" in {
-    val http = Http(s"$service/services/raw/put/lilacs_Sas/LILACS_Sas_Seven")
-    val parameters =
+    val http: HttpRequest = Http(s"$service/services/raw/put/lilacs_Sas/LILACS_Sas_Seven")
+    val parameters: String =
       "lilacs_Sas|fake-es|Soy un ser iluminado y maravilloso.|Verdades Universais|2019|1|1|Heitor Barbieri|15"
 
-    val content = http.postData(parameters).header("content-type", "text/plain;charset=utf-8").asString.body
+    val content: String = http.postData(parameters).header("content-type", "text/plain;charset=utf-8").asString.body
 
     content shouldBe "OK"
   }
 
   // === Check the "Duplicates (GET)" service (pt/en) ===
   "The user" should "retrieve similar documents of the fake document (pt/en)" in {
-    val url = s"$service/services/get/duplicates/" +
+    val url: String = s"$service/services/get/duplicates/" +
       "?database=lilacs_Sas" +
       "&schema=LILACS_Sas_Seven" +
       "&quantity=2" +
@@ -267,14 +268,14 @@ class DeDupServiceTest extends FlatSpec {
       "&pagina_inicial=15"
 
 
-    val content = pageContent(url)
-    val similarity = "\"similarity\":\"([^\"]+)\"".r
-    val total = ",\"total\":(\\d+),".r
-    val simVal = similarity.findFirstMatchIn(content) match {
+    val content: String = pageContent(url)
+    val similarity: Regex = "\"similarity\":\"([^\"]+)\"".r
+    val total: Regex = ",\"total\":(\\d+),".r
+    val simVal: Float = similarity.findFirstMatchIn(content) match {
       case Some(mat) => mat.group(1).toFloat
       case None => 0f
     }
-    val totVal = total.findFirstMatchIn(content) match {
+    val totVal: Int = total.findFirstMatchIn(content) match {
       case Some(tot) => tot.group(1).toInt
       case None => 0
     }
@@ -290,14 +291,14 @@ class DeDupServiceTest extends FlatSpec {
       "?database=lilacs_Sas" +
       "&id=fake*"
 
-    val content = pageContent(url)
+    val content: String = pageContent(url)
 
     content should include regex "OK"
   }
 
   // === Check the "Duplicates (GET)" service (multiple documents) ===
   "The user" should "not retrieve similar documents of the fake documents" in {
-    val url = s"$service/services/get/duplicates/" +
+    val url: String = s"$service/services/get/duplicates/" +
       "?database=lilacs_Sas" +
       "&schema=LILACS_Sas_Three" +
       "&quantity=1" +
@@ -306,9 +307,9 @@ class DeDupServiceTest extends FlatSpec {
       "&titulo_revista=Verdades Universais" +
       "&ano_publicacao=2019"
 
-    val content = pageContent(url)
-    val similarity = "\"similarity\":\"([^\"]+)\"".r
-    val found = similarity.findFirstMatchIn(content).isDefined
+    val content: String = pageContent(url)
+    val similarity: Regex = "\"similarity\":\"([^\"]+)\"".r
+    val found: Boolean = similarity.findFirstMatchIn(content).isDefined
 
     found shouldBe false
   }
