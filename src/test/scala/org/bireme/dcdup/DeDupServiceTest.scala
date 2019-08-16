@@ -53,14 +53,13 @@ class DeDupServiceTest extends FlatSpec {
                      url2.getPort, url2.getPath, url2.getQuery, url2.getRef)
     val urlStr: String = uri.toASCIIString
 
-    var content: String = ""
     failAfter(timeout = 60.seconds) {
       val source: BufferedSource = Source.fromURL(urlStr, "utf-8")
-      content = source.getLines().mkString("\n")
-      source.close()
-    }
+      val content: String = source.getLines().mkString("\n")
 
-    content
+      source.close()
+      content
+    }
   }
 
   val service = /*"http://localhost:8084/DeDup"*/ /*"http://serverofi5.bireme.br:8180/DeDup"*/ "http://dedup.bireme.org"

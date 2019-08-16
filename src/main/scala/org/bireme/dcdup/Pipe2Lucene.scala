@@ -59,7 +59,11 @@ class Pipe2Lucene {
                append: Boolean): Unit = {
 
     val index = new NGIndex(indexPath, indexPath, false)
-    val writer = index.getIndexWriter(append)
+    val writer = index.getIndexWriter
+    if (append) {
+      writer.deleteAll()
+      writer.commit()
+    }
     val schema = new NGSchema("schema", schemaFile, schemaEncoding)
     val codec = pipeEncoding.toLowerCase match {
       case "iso8859-1" => Codec.ISO8859
