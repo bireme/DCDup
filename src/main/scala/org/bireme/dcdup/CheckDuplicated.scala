@@ -6,7 +6,7 @@
   ==========================================================================*/
 
 package org.bireme.dcdup
-import java.io.File
+import java.io.{BufferedWriter, File}
 import java.nio.charset.Charset
 import java.nio.file.{Files, Paths}
 import java.util.Calendar
@@ -14,7 +14,7 @@ import java.util.Calendar
 import br.bireme.ngrams.{NGIndex, NGSchema, NGrams}
 
 import scala.collection.mutable
-import scala.io.Source
+import scala.io.{BufferedSource, Source}
 
 /** Checks a DeDup input piped file against a Dedup index looking for duplicated docs.
   *
@@ -40,14 +40,14 @@ object CheckDuplicated {
                       outNoDupFile: String,
                       outDupEncod: String = "utf-8"): Unit = {
 
-    val time = Calendar.getInstance().getTimeInMillis.toString
-    val indexPath = luceneIndex.getOrElse {
+    val time: String = Calendar.getInstance().getTimeInMillis.toString
+    val indexPath: String = luceneIndex.getOrElse {
       print("Creating temporary index ... ")
-      val tmpIndexPath = createTmpIndex(pipeFile, pipeFileEncod, ngSchema, time)
+      val tmpIndexPath: String = createTmpIndex(pipeFile, pipeFileEncod, ngSchema, time)
       println("OK")
       tmpIndexPath
     }
-    val index = new NGIndex(indexPath, indexPath, true)
+    val index: NGIndex = new NGIndex(indexPath, indexPath, true)
 
     // Self check
     println("Looking for duplicated documents in piped file... ")
@@ -72,44 +72,77 @@ object CheckDuplicated {
     * @param outNoDupFile1 the self check no duplicated file
     * @param outNoDupFile2 the remote check no duplicated file
     * @param outNoDupFile the unified no duplicated file
-    * @param outDupFileEncoding the files's character encoding
+    * @param outNoDupFileEncoding the files' character encoding
+    */
+  def takeNoDuplicated0(ngSchema: NGSchema,
+                       outNoDupFile1: String,
+                       outNoDupFile2: String,
+                       outNoDupFile: String,
+                       outNoDupFileEncoding: String): Unit = {
+    val idPos: Integer = ngSchema.getNamesPos.get("id")
+    val dbPos: Integer = ngSchema.getNamesPos.get("database")
+    val elemNum: Int = ngSchema.getNamesPos.size
+    val out: BufferedWriter = Files.newBufferedWriter(Paths.get(outNoDupFile), Charset.forName(outNoDupFileEncoding))
+    val ids: Set[String] = Set[String]()
+
+    def writeToFile(outFile: String): Unit = {
+      val in: BufferedSource = Source.fromFile(outFile, outNoDupFileEncoding)
+      in.getLines().foldLeft(ids) {
+        case (set, line) =>
+          val lineT = line.trim
+          if (lineT.isEmpty) set
+          else {
+            val id: String = getId(idPos, dbPos, elemNum, lineT)  //iddb
+            if (set.contains(id)) set
+            else {
+              out.write(line + "\n")
+              set + id
+            }
+          }
+      }
+      in.close()
+    }
+
+    writeToFile(outNoDupFile1)
+    writeToFile(outNoDupFile2)
+    out.close()
+  }
+
+  /** Creates a pipe file that contains the lines from both nodup files but without repeating lines.
+    *
+    * @param ngSchema DeDup data schema name. See http://dedup.bireme.org/services/schemas
+    * @param outNoDupFile1 the self check no duplicated file
+    * @param outNoDupFile2 the remote check no duplicated file
+    * @param outNoDupFile the unified no duplicated file
+    * @param outNoDupFileEncoding the files' character encoding
     */
   def takeNoDuplicated(ngSchema: NGSchema,
                        outNoDupFile1: String,
                        outNoDupFile2: String,
                        outNoDupFile: String,
-                       outDupFileEncoding: String): Unit = {
-    val idPos = ngSchema.getNamesPos.get("id")
-    val dbPos = ngSchema.getNamesPos.get("database")
-    val elemNum = ngSchema.getNamesPos.size
-    val out = Files.newBufferedWriter(Paths.get(outNoDupFile), Charset.forName(outDupFileEncoding))
-    val in1 = Source.fromFile(outNoDupFile1, outDupFileEncoding)
-    val ids: Set[String] = in1.getLines().foldLeft(Set[String]()) {
-      case (set, line) =>
-        val lineT = line.trim
-        if (lineT.isEmpty) set
-        else {
-          val id = getId(idPos, dbPos, elemNum, lineT)
-          if (set.contains(id)) set
-          else {
-            out.write(line + "\n")
-            set + id
-          }
-        }
-    }
-    in1.close()
+                       outNoDupFileEncoding: String): Unit = {
+    val idPos: Integer = ngSchema.getNamesPos.get("id")
+    val dbPos: Integer = ngSchema.getNamesPos.get("database")
+    val elemNum: Int = ngSchema.getNamesPos.size
+    val out: BufferedWriter = Files.newBufferedWriter(Paths.get(outNoDupFile), Charset.forName(outNoDupFileEncoding))
 
-    val in2 = Source.fromFile(outNoDupFile2, outDupFileEncoding)
-    in2.getLines().foldLeft(ids) {
+    val in1: BufferedSource = Source.fromFile(outNoDupFile1, outNoDupFileEncoding)
+    val ids: Set[String] = in1.getLines().foldLeft(Set[String]()) {
       case (set, line) =>
         val lineT: String = line.trim
         if (lineT.isEmpty) set
-        else {
-          val id: String = getId(idPos, dbPos, elemNum, lineT)
-          if (ids.contains(id)) set
-          else {
+        else set + getId(idPos, dbPos, elemNum, lineT) //iddb
+    }
+    in1.close()
+
+    val in2: BufferedSource = Source.fromFile(outNoDupFile2, outNoDupFileEncoding)
+    in2.getLines().foreach {
+      line =>
+        val lineT = line.trim
+        if (lineT.nonEmpty) {
+          val id = getId(idPos, dbPos, elemNum, lineT) //iddb
+          if (ids.contains(id)) {
             out.write(line + "\n")
-            set + id
           }
         }
     }
@@ -117,12 +150,12 @@ object CheckDuplicated {
     out.close()
   }
 
-  /** Deletes a standard file or a directory recursivelly
+  /** Deletes a standard file or a directory recursively
     *
     * @param file file or directory to be deleted
     */
   def deleteFile(file: File): Unit = {
-    val contents = file.listFiles()
+    val contents: Array[File] = file.listFiles()
     if (contents != null) contents.foreach(deleteFile)
     file.delete()
   }
@@ -159,8 +192,8 @@ object CheckDuplicated {
                              pipeFileEncoding: String,
                              ngSchema: NGSchema,
                              time: String): String = {
-    val indexPath = s"/tmp/DCDup_$time"
-    val ngIndex = new NGIndex(indexPath, indexPath, false)
+    val indexPath: String = s"/tmp/DCDup_$time"
+    val ngIndex: NGIndex = new NGIndex(indexPath, indexPath, false)
 
     NGrams.index(ngIndex, ngSchema, pipeFile, pipeFileEncoding)
     ngIndex.close()
@@ -168,9 +201,7 @@ object CheckDuplicated {
     indexPath
   }
 
-  /**
-    * Avoid duplicated entries in the output duplicated file (the check of input piped file with itself.
-    * Comparation of document with itself are removed from the new output duplicated file
+  /** Create an output file where the duplicated ids from input file are removed
     * @param outDupFileIn output file to remove duplicates
     * @param outDupFileOut output file with duplicates removed after post processing
     * @param outDupEncod output file encoding
@@ -179,26 +210,22 @@ object CheckDuplicated {
   def postProcessDup(outDupFileIn: String,
                      outDupFileOut: String,
                      outDupEncod: String): Map[String, Set[String]] = {
-    val ids = mutable.Map[String, Set[String]]()
-    val out = Files.newBufferedWriter(Paths.get(outDupFileOut), Charset.forName(outDupEncod))
-    val in = Source.fromFile(outDupFileIn, outDupEncod)
+    val ids: mutable.Map[String, Set[String]] = mutable.Map[String, Set[String]]()
+    val out: BufferedWriter = Files.newBufferedWriter(Paths.get(outDupFileOut), Charset.forName(outDupEncod))
+    val in: BufferedSource = Source.fromFile(outDupFileIn, outDupEncod)
 
     in.getLines() foreach {
       line =>
-        val linet = line.trim
+        val linet: String = line.trim
         if (linet.nonEmpty) {
-          val split = linet.split(" *\\| *", 8)  // ranking|similarity|id1|id2|tit1|tit2|db1|db2
+          val split: Array[String] = linet.split(" *\\| *", 8)  // ranking|similarity|id1|id2|tit1|tit2|db1|db2
           if (split.length == 8) {
-            val pos1x = split(2).indexOf('-')
-            val pos2x = split(3).indexOf('-')
-            val pos1 = if (pos1x == -1) split(2).length else pos1x
-            val pos2 = if (pos2x == -1) split(3).length else pos2x
-            val id1x = Tools.normalize(split(2).substring(0, pos1) + split(6)) //id1db1
-            val id2x = Tools.normalize(split(3).substring(0, pos2) + split(7)) //id2db2
+            val id1x: String = getId(2, 6,8, linet) //id1db1
+            val id2x: String = getId(3, 7,8, linet) //id2db2
             val (id1, id2) = if (id1x.compareTo(id2x) <= 0) (id1x, id2x) else (id2x, id1x)
 
             if (!id1.equals(id2)) {
-              val set = ids.getOrElse(id1, Set[String]())
+              val set: Set[String] = ids.getOrElse(id1, Set[String]())
               if (!set.contains(id2)) {
                 out.write(line + "\n")
                 ids += (id1 -> (set + id2))
@@ -229,23 +256,18 @@ object CheckDuplicated {
                        outNoDupFile: String,
                        outNoDupEncod: String,
                        dpIds: Set[String]): Unit = {
-    val idPos = ngSchema.getNamesPos.get("id")
-    val dbPos = ngSchema.getNamesPos.get("database")
-    val elemNum = ngSchema.getNamesPos.size()
-    val out = Files.newBufferedWriter(Paths.get(outNoDupFile), Charset.forName(outNoDupEncod))
+    val idPos: Integer = ngSchema.getNamesPos.get("id")
+    val dbPos: Integer = ngSchema.getNamesPos.get("database")
+    val elemNum: Int = ngSchema.getNamesPos.size()
+    val out: BufferedWriter = Files.newBufferedWriter(Paths.get(outNoDupFile), Charset.forName(outNoDupEncod))
     val idsNoDup: mutable.Set[String] = mutable.Set[String]()
 
-    val inPipe = Source.fromFile(pipeFile, pipeFileEncoding)
+    val inPipe: BufferedSource = Source.fromFile(pipeFile, pipeFileEncoding)
     inPipe.getLines().foreach {
       line =>
-        val linet = line.trim
+        val linet: String = line.trim
         if (linet.nonEmpty) {
-          val split = linet.split(" *\\| *", elemNum)
-          val idx: String = split(idPos)
-          val posx = idx.indexOf('-')
-          val pos = if (posx == -1) idx.length else posx
-          val id = Tools.normalize(idx.substring(0, pos) + split(dbPos)) //iddb
-
+          val id: String = getId(idPos, dbPos, elemNum, linet) //iddb
           if (!dpIds.contains(id) && !idsNoDup.contains(id)) {
             idsNoDup += id
             out.write(line + "\n")
@@ -268,10 +290,10 @@ object CheckDuplicated {
                     dbPos: Int,
                     elemNum: Int,
                     line: String): String = {
-    val split = line.split(" *\\| *", elemNum + 1)
-    val id = split(idPos)
-    val posHifen = id.indexOf('-')
-    val pos = if (posHifen == -1) id.length else posHifen
+    val split: Array[String] = line.split(" *\\| *", elemNum + 1)
+    val id: String = split(idPos)
+    val posHifen: Int = id.indexOf('-')
+    val pos: Int = if (posHifen == -1) id.length else posHifen
 
     Tools.normalize(id.substring(0, pos) + split(dbPos))   //iddb
   }

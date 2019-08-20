@@ -36,20 +36,20 @@ object DoubleCheckDuplicated extends App {
 
   val parameters = args.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
-      val split = par.split(" *= *", 2)
+      val split: Array[String] = par.split(" *= *", 2)
       if (split.length == 1) map + ((split(0).substring(2), ""))
       else map + ((split(0).substring(1), split(1)))
   }
 
-  val pipeFile = parameters("pipeFile")
-  val index = parameters("index")
-  val confFile = parameters("confFile")
-  val outDupFile1 = parameters("outDupFile1")
-  val outDupFile2 = parameters("outDupFile2")
-  val outNoDupFile = parameters("outNoDupFile")
-  val pipeFileEncod = parameters.getOrElse("pipeFileEncod", "utf-8")
-  val confFileEncod = parameters.getOrElse("confFileEncod", "utf-8")
-  val outDupEncod = parameters.getOrElse("outDupEncod", "utf-8")
+  val pipeFile: String = parameters("pipeFile")
+  val index: String = parameters("index")
+  val confFile: String = parameters("confFile")
+  val outDupFile1: String = parameters("outDupFile1")
+  val outDupFile2: String = parameters("outDupFile2")
+  val outNoDupFile: String = parameters("outNoDupFile")
+  val pipeFileEncod: String = parameters.getOrElse("pipeFileEncod", "utf-8")
+  val confFileEncod: String = parameters.getOrElse("confFileEncod", "utf-8")
+  val outDupEncod: String = parameters.getOrElse("outDupEncod", "utf-8")
 
   doubleCheck(pipeFile, pipeFileEncod, index, confFile, confFileEncod,
               outDupFile1, outDupFile2, outNoDupFile,outDupEncod)
