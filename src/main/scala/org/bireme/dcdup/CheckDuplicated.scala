@@ -163,6 +163,8 @@ object CheckDuplicated {
     val ngIndex = new NGIndex(indexPath, indexPath, false)
 
     NGrams.index(ngIndex, ngSchema, pipeFile, pipeFileEncoding)
+    ngIndex.close()
+
     indexPath
   }
 
