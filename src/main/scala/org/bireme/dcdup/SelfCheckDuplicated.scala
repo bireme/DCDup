@@ -22,8 +22,7 @@ object SelfCheckDuplicated extends App {
       "\n\t-outDupFile=<outDupFile> - duplicated records found in pipe file" +
       "\n\t-outNoDupFile=<outNoDupFile> - no duplicated records between pipe file and itself" +
       "\n\t[-pipeFileEncod=<pipeFileEncoding>] - pipe file character encoding. Default is utf-8" +
-      "\n\t[-confFileEncod=<confFileEncoding>] - DeDup fields configuration file character encoding. Default is utf-8" +
-      "\n\t[-outDupEncod=<outDupEncoding>] - output file character encoding. Default is utf-8")
+      "\n\t[-confFileEncod=<confFileEncoding>] - DeDup fields configuration file character encoding. Default is utf-8")
     System.exit(1)
   }
 
@@ -42,8 +41,7 @@ object SelfCheckDuplicated extends App {
   val outNoDupFile = parameters("outNoDupFile")
   val pipeFileEncod = parameters.getOrElse("pipeFileEncod", "utf-8")
   val confFileEncod = parameters.getOrElse("confFileEncod", "utf-8")
-  val outDupEncod = parameters.getOrElse("outDupEncod", "utf-8")
   val ngSchema = new NGSchema(confFile, confFile, confFileEncod)
 
-  CheckDuplicated.checkDuplicated(pipeFile, pipeFileEncod, None, ngSchema, outDupFile, outNoDupFile, outDupEncod)
+  CheckDuplicated.checkDuplicated(pipeFile, pipeFileEncod, None, ngSchema, outDupFile, outNoDupFile)
 }

@@ -9,6 +9,7 @@ package org.bireme.dcdup
 
 import java.io._
 import java.nio.charset.{Charset, CodingErrorAction}
+import java.nio.file.{Files, Paths, StandardOpenOption}
 
 import br.bireme.ngrams.NGSchema
 import org.apache.http.client.methods.{HttpGet, HttpPost}
@@ -34,14 +35,13 @@ object WebDoubleCheckDuplicated extends App {
       "\n\t-schema=<schemaName> - DeDup schema name" +
       "\n\t-outDupFile1=<outDupFile1> - duplicated records found in pipe file" +
       "\n\t-outDupFile2=<outDupFile2> - duplicated records found between pipe file and Dedup index" +
-      "\n\t-outNoDupFile=<outNoDupFile> - no duplicated records between (pipe file and itself) " +
-      "and (pipe file and DeDup index)" +
-      "\n\t[-pipeFileEncod=<pipeFileEncoding>] - pipe file character encoding. Default is utf-8" +
-      "\n\t[-outDupEncod=<outDupEncoding>] - output file character encoding. Default is utf-8")
+      "\n\t-outNoDupFile1=<outNoDupFile1> - no duplicated records between input pipe file and Dedup index" +
+      "\n\t-outNoDupFile2=<outNoDupFile2> - no duplicated records between (pipe file and itself) and (pipe file and Dedup index)" +
+      "\n\t[-pipeFileEncod=<pipeFileEncoding>] - pipe file character encoding. Default is utf-8")
     System.exit(1)
   }
 
-  if (args.length < 7) usage()
+  if (args.length < 8) usage()
 
   val parameters = args.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
@@ -55,13 +55,13 @@ object WebDoubleCheckDuplicated extends App {
   val schema = parameters("schema")
   val outDupFile1 = parameters("outDupFile1")
   val outDupFile2 = parameters("outDupFile2")
-  val outNoDupFile = parameters("outNoDupFile")
+  val outNoDupFile1 = parameters("outNoDupFile1")
+  val outNoDupFile2 = parameters("outNoDupFile2")
   val pipeFileEncod = parameters.getOrElse("pipeFileEncod", "utf-8")
-  val outDupEncod = parameters.getOrElse("outDupEncod", "utf-8")
 
   val dup = new WebDoubleCheckDuplicated()
   dup.doubleCheck(pipeFile, pipeFileEncod, dedupUrl, index, schema,
-                  outDupFile1, outDupFile2, outNoDupFile, outDupEncod)
+                  outDupFile1, outDupFile2, outNoDupFile1, outNoDupFile2)
 }
 
 /** Class to check a DeDup input piped file against itself to look for duplicated
@@ -79,8 +79,8 @@ class WebDoubleCheckDuplicated {
                   schemaName: String,       // used in DeDup service
                   outDupFile1: String,
                   outDupFile2: String,
-                  outNoDupFile: String,
-                  outDupFileEncoding: String): Unit = {
+                  outNoDupFile1: String,
+                  outNoDupFile2: String): Unit = {
     // Check pipe file
     println("\nChecking pipe file ...")
     val (_, bad, goodFile, badFile) =
@@ -94,37 +94,43 @@ class WebDoubleCheckDuplicated {
     // Self check
     println("\n***Self check")
     CheckDuplicated.checkDuplicated(goodFile, pipeFileEncoding , None, ngSchema, outDupFile1,
-      outNoDupFile + "_self", outDupFileEncoding)
+      outNoDupFile1 + "_self")
 
     // Check using DeDup service
     println("\n***Remote check")
     remoteCheck(deDupBaseUrl, indexName, schemaName, pipeFile, pipeFileEncoding,
-                                                outDupFile2 + "_tmp", outDupFileEncoding)
+                                                outDupFile2 + "_tmp")
 
     print("OK\nPost processing remote duplicated files ... ")
     val dupIds: Map[String, Set[String]] =
-      CheckDuplicated.postProcessDup(outDupFile2 + "_tmp", outDupFile2, outDupFileEncoding)
+      CheckDuplicated.postProcessDup(outDupFile2 + "_tmp", outDupFile2)
 
     print("OK\n\nPost processing no duplicated remote files ... ")
     val idsDup: Set[String] = dupIds.foldLeft(Set[String]()) ((set, kv) => set ++ (kv._2 + kv._1))
     CheckDuplicated.postProcessNoDup(pipeFile, pipeFileEncoding, ngSchema,
-                                     outNoDupFile + "_remote", outDupFileEncoding, idsDup)
+                                     outNoDupFile1 + "_remote", idsDup)
 
-    // Remove duplication in the no duplicated documents file
     print("OK\n\nRemoving duplicated lines ... ")
-    CheckDuplicated.takeNoDuplicated(ngSchema, outNoDupFile + "_self", outNoDupFile + "_remote",
-      outNoDupFile, outDupFileEncoding)
+
+    // Take duplicate no duplicated documents between input pipe file and Dedup index
+    CheckDuplicated.takeNoDuplicatedLight(ngSchema, outNoDupFile1 + "_self", outNoDupFile1 + "_remote",
+      outNoDupFile1)
+
+    // Take duplicate no duplicated documents between (pipe file and itself) and (pipe file and Dedup index)
+    CheckDuplicated.takeNoDuplicated(ngSchema, outNoDupFile1 + "_self", outNoDupFile1 + "_remote",
+      outNoDupFile2)
+
     println("OK")
 
     // Delete pre-processed output files
     CheckDuplicated.deleteFile(new File(outDupFile2 + "_tmp"))
-    CheckDuplicated.deleteFile(new File(outNoDupFile + "_self"))
-    CheckDuplicated.deleteFile(new File(outNoDupFile + "_remote"))
+    CheckDuplicated.deleteFile(new File(outNoDupFile1 + "_self"))
+    CheckDuplicated.deleteFile(new File(outNoDupFile1 + "_remote"))
     CheckDuplicated.deleteFile(new File(goodFile))
   }
 
   /** Given an input piped file and a NGrams index, looks for documents that
-    * are in the input file that are similar to the ones stored in the index
+    * are in the input file that are duplicated to the ones stored in the index
     * through DeDup web service.
     *
     * @param deDupBaseUrl url to DeDup webservice, usually http://dedup.bireme.org/services
@@ -132,27 +138,22 @@ class WebDoubleCheckDuplicated {
     * @param schemaName DeDup data schema name. See http://dedup.bireme.org/services/schemas
     * @param pipeFile input piped file used to look for similar docs
     * @param pipeFileEncoding input piped file character encoding
-    * @param outDupFile output piped file with the similar documents
-    * @param outDupFileEncoding output piped file character encoding
+    * @param outDupFile output piped file with the duplicated documents
     */
   def remoteCheck(deDupBaseUrl: String,
                   indexName: String,
                   schemaName: String,
                   pipeFile: String,
                   pipeFileEncoding: String,
-                  outDupFile: String,
-                  outDupFileEncoding: String): Unit = {
+                  outDupFile: String): Unit = {
     val quantity = 250 // Number of documents sent to each call of DeDup service
     val codAction = CodingErrorAction.REPLACE
-    val encoder = Charset.forName(outDupFileEncoding).newEncoder()
-                  .onMalformedInput(codAction)
-                  .onUnmappableCharacter(codAction)
     val decoder = Charset.forName(pipeFileEncoding).newDecoder()
                   .onMalformedInput(codAction)
                   .onUnmappableCharacter(codAction)
     val src = Source.fromFile(pipeFile)(decoder)
-    val dest = new BufferedWriter(new OutputStreamWriter(
-                 new FileOutputStream(outDupFile), encoder))
+    val dest = Files.newBufferedWriter(
+      Paths.get(outDupFile), Charset.forName("utf-8"), StandardOpenOption.CREATE_NEW)
     var cur = 0
 
     new LineBatchIterator(src.getLines(), quantity).foreach {
@@ -169,6 +170,14 @@ class WebDoubleCheckDuplicated {
     dest.close()
   }
 
+  /**
+  * Check an input pipe file against a DeDup schema
+    * @param pipe input file
+    * @param encoding input file encoding
+    * @param schemaUrl url of the DeDup schema
+    * @return (number of good input lines, number of incorrect input lines,
+    *          path to good output file, path to bad output file)
+    */
   private def checkPipeFile(pipe: String,
                             encoding: String,
                             schemaUrl: String): (Int, Int, String, String) = {

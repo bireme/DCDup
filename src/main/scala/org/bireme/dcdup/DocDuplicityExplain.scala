@@ -15,8 +15,8 @@ import org.apache.lucene.search.{IndexSearcher, TermQuery}
 import org.apache.lucene.search.spell.NGramDistance
 
 import scala.collection.mutable
-import scala.collection.JavaConverters._
-//import scala.jdk.CollectionConverters._ //scala 2.13.0
+//import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /**
 * Object used to explain if a given input piped string representing a document is duplicated or not compared to another one
@@ -106,8 +106,8 @@ object DocDuplicityExplain extends App {
     val analyzer: NGAnalyzer = ngIndex.getAnalyzer.asInstanceOf[NGAnalyzer]
     val ngDistance = new NGramDistance(analyzer.getNgramSize)
     val params: Parameters = schema.getParameters
-    //val fields: Map[Int, Field] = params.getSearchFields.asScala.map[Int,Field](kv => (kv._1.toInt, kv._2)).toMap scala 2.13.0
-    val fields: Map[Int, Field] = params.getSearchFields.asScala.map(kv => (kv._1.toInt, kv._2)).toMap
+    val fields: Map[Int, Field] = params.getSearchFields.asScala.map[Int,Field](kv => (kv._1.toInt, kv._2)).toMap //scala 2.13.0
+    //val fields: Map[Int, Field] = params.getSearchFields.asScala.map(kv => (kv._1.toInt, kv._2)).toMap
     val fields2: java.util.Map[String, Field] = params.getNameFields
     val results: Seq[(Int,Int)] = fields.foldLeft(Seq[(Int,Int)]()) {
       case (seq, fld: (Int, Field)) =>
@@ -258,8 +258,8 @@ object DocDuplicityExplain extends App {
 
     val split: Array[String] = StringEscapeUtils.unescapeHtml4(doc).replace(':', ' ').trim
                                                    .split(" *\\| *", Integer.MAX_VALUE)
-    //val fields: Map[Int, Field] = params.getSearchFields.asScala.map[Int,Field](kv =>  (kv._1.toInt, kv._2)).toMap scala 2.13.0
-    val fields: Map[Int, Field] = params.getSearchFields.asScala.map(kv =>  (kv._1.toInt, kv._2)).toMap
+    val fields: Map[Int, Field] = params.getSearchFields.asScala.map[Int,Field](kv =>  (kv._1.toInt, kv._2)).toMap //scala 2.13.0
+    //val fields: Map[Int, Field] = params.getSearchFields.asScala.map(kv =>  (kv._1.toInt, kv._2)).toMap
 
     if (split.length == fields.size) Some(split)
     else None

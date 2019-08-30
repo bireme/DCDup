@@ -16,8 +16,8 @@ import org.apache.lucene.queryparser.classic.QueryParser
 import org.apache.lucene.search.{IndexSearcher, Query, ScoreDoc}
 import org.apache.lucene.store.FSDirectory
 
-//import scala.jdk.CollectionConverters._   scala 2.13.0
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._   //scala 2.13.0
+//import scala.collection.JavaConverters._
 
 /**
   * Search for documents into a Lucene index
