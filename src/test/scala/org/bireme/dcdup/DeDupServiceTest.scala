@@ -23,6 +23,8 @@ package org.bireme.dcdup
 
 import java.net.{URI, URL}
 
+import Ordering.Float.TotalOrdering
+
 import org.scalatest.Matchers._
 import org.scalatest._
 import org.scalatest.concurrent.Timeouts._
