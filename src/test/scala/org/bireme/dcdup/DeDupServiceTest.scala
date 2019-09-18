@@ -23,7 +23,7 @@ package org.bireme.dcdup
 
 import java.net.{URI, URL}
 
-import Ordering.Float.TotalOrdering
+// import Ordering.Float.TotalOrdering  // scala 2.13.0
 
 import org.scalatest.Matchers._
 import org.scalatest._

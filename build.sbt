@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   organization := "br.bireme",
   version := "0.1.0",
-  scalaVersion := /*"2.12.9"*/ "2.13.0" //"2.12.8"
+  scalaVersion := "2.12.9" // "2.13.0" //"2.12.8"
 )
 
 lazy val root = (project in file(".")).
@@ -20,6 +20,7 @@ val mySQLVersion = "8.0.17" // "8.0.15"
 val logBackVersion = "1.2.3"
 val circeParserVersion = "0.12.0-RC4" //"0.12.0-RC3"
 val scalaTestVersion = "3.0.8" //"3.0.7"
+val akkaVersion =  "2.5.25"
 //val hairyfotrVersion = "0.1.17"
 
 libraryDependencies ++= Seq(
@@ -39,7 +40,8 @@ libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % logBackVersion,
   "io.circe" % "circe-parser_2.12" % circeParserVersion,
   "org.scalactic" %% "scalactic" % scalaTestVersion,
-  "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
+  "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
+  "com.typesafe.akka" %% "akka-actor" % akkaVersion
 )
 
 logBuffered in Test := false

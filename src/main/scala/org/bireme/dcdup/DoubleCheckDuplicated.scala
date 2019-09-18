@@ -8,6 +8,8 @@
 package org.bireme.dcdup
 
 import java.io.File
+import java.util.Calendar
+
 import br.bireme.ngrams.NGSchema
 
 /** Check a DeDup input piped file against itself to look for duplicated
@@ -50,10 +52,12 @@ object DoubleCheckDuplicated extends App {
   val outNoDupFile2: String = parameters("outNoDupFile2")
   val pipeFileEncod: String = parameters.getOrElse("pipeFileEncod", "utf-8")
   val confFileEncod: String = parameters.getOrElse("confFileEncod", "utf-8")
+  val begin: Long = Calendar.getInstance.getTimeInMillis
 
   doubleCheck(pipeFile, pipeFileEncod, index, confFile, confFileEncod,
               outDupFile1, outDupFile2, outNoDupFile1, outNoDupFile2)
 
+  println(s"\nElapsed time: ${(Calendar.getInstance.getTimeInMillis - begin) / 1000}s")
 
   /** Check a DeDup input piped file against itself to look for duplicated
     * documents and then against a DeDup index (usually LILACS) to also
@@ -81,22 +85,17 @@ object DoubleCheckDuplicated extends App {
     val ngSchema: NGSchema = new NGSchema(confFile, confFile, confFileEncoding)
 
     // Self check
-    CheckDuplicated.checkDuplicated(pipeFile, pipeFileEncoding , None, ngSchema, outDupFile1, outNoDupFile1 + "_self")
+    CheckDuplicated.checkDuplicated(pipeFile, pipeFileEncoding , None, ngSchema, outDupFile1, outNoDupFile1 + "_self",
+      selfCheck = true)
 
     // Check using given Lucene indexPath
     CheckDuplicated.checkDuplicated(pipeFile, pipeFileEncoding , Some(luceneIndex), ngSchema, outDupFile2,
-      outNoDupFile1 + "_remote")
-
-    // Take duplicate no duplicated documents between input pipe file and Dedup index
-    CheckDuplicated.takeNoDuplicatedLight(ngSchema, outNoDupFile1 + "_self", outNoDupFile1 + "_remote",
-      outNoDupFile1)
+      outNoDupFile1, selfCheck = false)
 
     // Take duplicate no duplicated documents between (pipe file and itself) and (pipe file and Dedup index)
-    CheckDuplicated.takeNoDuplicated(ngSchema, outNoDupFile1 + "_self", outNoDupFile1 + "_remote",
-      outNoDupFile2)
+    CheckDuplicated.takeNoDuplicated(ngSchema, outNoDupFile1 + "_self" , outNoDupFile1, outNoDupFile2)
 
-    // Delete pre-processed output files
+    // Delete pre-processed output file
     CheckDuplicated.deleteFile(new File(outNoDupFile1 + "_self"))
-    CheckDuplicated.deleteFile(new File(outNoDupFile1 + "_remote"))
   }
 }

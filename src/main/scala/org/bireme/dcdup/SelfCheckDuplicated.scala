@@ -43,5 +43,5 @@ object SelfCheckDuplicated extends App {
   val confFileEncod = parameters.getOrElse("confFileEncod", "utf-8")
   val ngSchema = new NGSchema(confFile, confFile, confFileEncod)
 
-  CheckDuplicated.checkDuplicated(pipeFile, pipeFileEncod, None, ngSchema, outDupFile, outNoDupFile)
+  CheckDuplicated.checkDuplicated(pipeFile, pipeFileEncod, None, ngSchema, outDupFile, outNoDupFile, selfCheck = true)
 }

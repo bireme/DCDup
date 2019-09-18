@@ -12,6 +12,7 @@ import java.nio.file.{Files, Paths}
 import java.util.Calendar
 
 import br.bireme.ngrams.{NGIndex, NGSchema, NGrams}
+import org.bireme.dcdup.akka.CheckDuplicatedAkka
 
 import scala.collection.mutable
 import scala.io.{BufferedSource, Source}
@@ -30,13 +31,16 @@ object CheckDuplicated {
     * @param ngSchema DeDup data schema name. See http://dedup.bireme.org/services/schemas
     * @param outDupFile the name of the output no duplicated documents file
     * @param outNoDupFile the output file's character encoding
+    * @param selfCheck if true indicates that are a duplicated check from input file against itself
+    *                  (the index contains only the input file)
     */
   def checkDuplicated(pipeFile: String,
                       pipeFileEncod: String,
                       luceneIndex: Option[String],
                       ngSchema: NGSchema,
                       outDupFile: String,
-                      outNoDupFile: String): Unit = {
+                      outNoDupFile: String,
+                      selfCheck: Boolean = false): Unit = {
 
     val time: String = Calendar.getInstance().getTimeInMillis.toString
     val indexPath: String = luceneIndex.getOrElse {
@@ -47,13 +51,18 @@ object CheckDuplicated {
     }
     val index: NGIndex = new NGIndex(indexPath, indexPath, true)
 
-    // Self check
+    // Check against the index (self or remote)
     println("Looking for duplicated documents in piped file... ")
-    check(index, ngSchema, pipeFile, pipeFileEncod, outDupFile + "_tmp")
+    check(index, ngSchema, pipeFile, pipeFileEncod, outDupFile + "_tmp", selfCheck)
+
+    index.close()
     println("... OK")
 
+    // Retrieve a map of repeated ids.
     print("Post processing duplicated files ... ")
     val dupIds: Map[String, Set[String]] = postProcessDup(outDupFile + "_tmp", outDupFile)
+
+    // Remove repeatable documents
     print("OK\nPost processing no duplicated files... ")
     val idsDup: Set[String] = dupIds.foldLeft(Set[String]()) ((set, kv) => set ++ (kv._2 + kv._1))
     postProcessNoDup(pipeFile, pipeFileEncod, ngSchema, outNoDupFile, idsDup)
@@ -79,11 +88,11 @@ object CheckDuplicated {
     val dbPos: Integer = ngSchema.getNamesPos.get("database")
     val elemNum: Int = ngSchema.getNamesPos.size
     val out: BufferedWriter = Files.newBufferedWriter(Paths.get(outNoDupFile), Charset.forName("utf-8"))
-    val ids: Set[String] = Set[String]()
 
-    def writeToFile(outFile: String): Unit = {
+    def writeToFile(outFile: String,
+                    ids: Set[String]): Set[String] = {
       val in: BufferedSource = Source.fromFile(outFile, "utf-8")
-      in.getLines().foldLeft(ids) {
+      val outSet: Set[String] = in.getLines().foldLeft(ids) {
         case (set, line) =>
           val lineT = line.trim
           if (lineT.isEmpty) set
@@ -97,10 +106,11 @@ object CheckDuplicated {
           }
       }
       in.close()
+      outSet
     }
 
-    writeToFile(remoteNoDupFile)
-    writeToFile(selfNoDupFile)
+    val ids1: Set[String] = writeToFile(remoteNoDupFile, Set[String]())
+    writeToFile(selfNoDupFile, ids1)
     out.close()
   }
 
@@ -120,8 +130,9 @@ object CheckDuplicated {
     val elemNum: Int = ngSchema.getNamesPos.size
     val out: BufferedWriter = Files.newBufferedWriter(Paths.get(outNoDupFile), Charset.forName("utf-8"))
 
+    // Take ids from self no duplicated file
     val in1: BufferedSource = Source.fromFile(selfNoDupFile, "utf-8")
-    val ids: Set[String] = in1.getLines().foldLeft(Set[String]()) {
+    val ids1: Set[String] = in1.getLines().foldLeft(Set[String]()) {
       case (set, line) =>
         val lineT: String = line.trim
         if (lineT.isEmpty) set
@@ -129,18 +140,39 @@ object CheckDuplicated {
     }
     in1.close()
 
+    // Take ids from remote no duplicated file
     val in2: BufferedSource = Source.fromFile(remoteNoDupFile, "utf-8")
-    in2.getLines().foreach {
-      line =>
-        val lineT = line.trim
-        if (lineT.nonEmpty) {
-          val id = getId(idPos, dbPos, elemNum, lineT) //iddb
-          if (ids.contains(id)) {
-            out.write(line + "\n")
-          }
-        }
+    val ids2: Set[String] = in2.getLines().foldLeft(Set[String]()) {
+      case (set, line) =>
+        val lineT: String = line.trim
+        if (lineT.isEmpty) set
+        else set + getId(idPos, dbPos, elemNum, lineT) //iddb
     }
     in2.close()
+
+    // General no repeatable ids
+    val nrepIds: Set[String] = ids1 intersect ids2
+
+    // Write no repeatable docs from self file
+    val in1a: BufferedSource = Source.fromFile(selfNoDupFile, "utf-8")
+    in1a.getLines().foreach {
+      line =>
+        val lineT: String = line.trim
+        val id: String = getId(idPos, dbPos, elemNum, lineT) //iddb
+        if (nrepIds.contains(id)) out.write(lineT + "\n")
+    }
+    in1a.close()
+
+    // Write no repeatable docs from remote file
+    val in2a: BufferedSource = Source.fromFile(remoteNoDupFile, "utf-8")
+    in2a.getLines().foreach {
+      line =>
+        val lineT: String = line.trim
+        val id: String = getId(idPos, dbPos, elemNum, lineT) //iddb
+        if (nrepIds.contains(id) && !ids1.contains(id)) out.write(lineT + "\n")
+    }
+    in2a.close()
+
     out.close()
   }
 
@@ -163,13 +195,19 @@ object CheckDuplicated {
     * @param pipeFile input piped file used to look for similar docs
     * @param pipeFileEncoding input piped file character encoding
     * @param outDupFile output piped file with the similar documents
+    * @param selfCheck if true indicates that are a duplicated check from input file against itself
     */
   private def check(ngIndex: NGIndex,
                     ngSchema: NGSchema,
                     pipeFile: String,
                     pipeFileEncoding: String,
-                    outDupFile: String): Unit = {
-    NGrams.search(ngIndex, ngSchema, pipeFile, pipeFileEncoding, outDupFile, "utf-8")
+                    outDupFile: String,
+                    selfCheck: Boolean): Unit = {
+    //NGrams.search(ngIndex, ngSchema, pipeFile, pipeFileEncoding, outDupFile, "utf-8")
+
+    val numberOfCheckers: Int = Runtime.getRuntime.availableProcessors()
+    CheckDuplicatedAkka.check(ngIndex, ngSchema, pipeFile, pipeFileEncoding, outDupFile,
+      numberOfCheckers = numberOfCheckers, selfCheck)
   }
 
   /** Creates a temporary DeDup index.
