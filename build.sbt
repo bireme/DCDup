@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   organization := "br.bireme",
   version := "0.1.0",
-  scalaVersion := "2.12.9" // "2.13.0" //"2.12.8"
+  scalaVersion := "2.12.9" //"2.13.1" // binarios nao funcionam quando da execucao
 )
 
 lazy val root = (project in file(".")).
@@ -11,15 +11,15 @@ lazy val root = (project in file(".")).
   )
 
 val commonsLangVersion = "3.9" //"3.8.1"
-val commonsTextVersion = "1.7" //"1.6"
+val commonsTextVersion = "1.8" //"1.7"
 val luceneVersion = "8.2.0" //"8.0.0"
 val jacksonVersion = /*"2.9.9.3"*/ "2.9.9"
-val httpClientVersion = "4.5.9" //"4.5.7"
+val httpClientVersion = "4.5.10" //"4.5.9"
 val scalajHttpVersion = "2.4.2" //"2.4.1"
 val mySQLVersion = "8.0.17" // "8.0.15"
 val logBackVersion = "1.2.3"
-val circeParserVersion = "0.12.0-RC4" //"0.12.0-RC3"
-val scalaTestVersion = "3.0.8" //"3.0.7"
+val circeParserVersion = "0.12.1" //"0.12.0-RC4"
+val scalaTestVersion = /*"3.2.0-M1"*/ "3.0.8"
 val akkaVersion =  "2.5.25"
 //val hairyfotrVersion = "0.1.17"
 

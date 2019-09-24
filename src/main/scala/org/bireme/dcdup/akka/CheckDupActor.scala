@@ -15,6 +15,7 @@ import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.search.spell.NGramDistance
 
 import scala.collection.JavaConverters._
+//import scala.jdk.CollectionConverters._ // scala 1.3.1
 import scala.util.{Failure, Success, Try}
 
 class CheckDupActor(ngIndex: NGIndex,
