@@ -10,8 +10,9 @@ package org.bireme.dcdup
 import java.io.{File, IOException}
 import java.nio.charset.{Charset, CodingErrorAction}
 
-import scala.io.Source
+import org.apache.http.client.config.RequestConfig
 
+import scala.io.Source
 import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.client.methods.{HttpGet, HttpPost}
 import org.apache.http.entity.StringEntity
@@ -153,9 +154,12 @@ object WebPipe2Lucene extends App {
                             indexName: String): String = {
     val baseUrlTrim = baseUrl.trim
     val burl = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
+    val requestConfig = RequestConfig.custom().setSocketTimeout(5 * 60000).setConnectTimeout(10000).build()
     val httpClient = HttpClientBuilder.create().build()
     val get = new HttpGet(burl + "optimize/" + "/" + indexName)
     get.setHeader("Content-type", "text/plain; charset=utf-8")
+    get.setConfig(requestConfig)
+
     val response = httpClient.execute(get)
     val statusCode = response.getStatusLine.getStatusCode
     val ret = if (statusCode == 200) {

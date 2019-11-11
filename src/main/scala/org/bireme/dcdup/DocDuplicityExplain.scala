@@ -135,12 +135,9 @@ object DocDuplicityExplain extends App {
                             idxName: String,
                             ngDistance: NGramDistance): Float = {
     val content1: String = br.bireme.ngrams.Tools.limitSize(
-      br.bireme.ngrams.Tools.normalize(doc1(idxFldPos), NGrams.OCC_SEPARATOR),
-      NGrams.MAX_NG_TEXT_SIZE).trim
-    val content2: String = {
-      val contents = doc2.getValues(idxName)
-      if (contents.isEmpty) "" else contents.head
-    }
+      br.bireme.ngrams.Tools.normalize(doc1(idxFldPos), NGrams.OCC_SEPARATOR), NGrams.MAX_NG_TEXT_SIZE).trim
+    val content2: String = doc2.getValues(idxName).headOption.getOrElse("")
+
     ngDistance.getDistance(content1, content2)
   }
 

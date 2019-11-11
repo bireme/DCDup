@@ -25,4 +25,15 @@ object Tools {
 
   def normalize(in: String): String = Normalizer.normalize(in.trim().toLowerCase, Form.NFD)
     .replaceAll("[^a-z0-9]", "")
+
+  def changeFileExtension(fname: String,
+                          extension: String): String = {
+    val fnam: String = fname.trim
+    val ext: String = extension.trim
+    val ext1: String = if (ext.isEmpty) ext
+    else if (ext(0) == '.') ext else s".$ext"
+
+    if (fnam.contains('.')) fnam.replaceAll("\\.[^.]*$", ext1)
+    else s"$fnam$ext1"
+  }
 }

@@ -32,7 +32,7 @@ object CheckDuplicatedAkka {
     * @param pipeFileEncoding input piped file character encoding
     * @param outDupFile output piped file with the similar documents
     * @param numberOfCheckers number of threads doing the check
-    * @param selfCheck if true indicates that are a duplicated check from input file against itself
+    * @param selfCheck if true indicate that it is a duplicated check from input file against itself
     */
   def check(ngIndex: NGIndex,
             ngSchema: NGSchema,

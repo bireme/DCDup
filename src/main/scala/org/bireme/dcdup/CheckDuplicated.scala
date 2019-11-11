@@ -6,6 +6,7 @@
   ==========================================================================*/
 
 package org.bireme.dcdup
+
 import java.io.{BufferedWriter, File}
 import java.nio.charset.Charset
 import java.nio.file.{Files, Paths}
@@ -31,7 +32,7 @@ object CheckDuplicated {
     * @param ngSchema DeDup data schema name. See http://dedup.bireme.org/services/schemas
     * @param outDupFile the name of the output no duplicated documents file
     * @param outNoDupFile the output file's character encoding
-    * @param selfCheck if true indicates that are a duplicated check from input file against itself
+    * @param selfCheck if true indicate that it is a duplicated check from input file against itself
     *                  (the index contains only the input file)
     */
   def checkDuplicated(pipeFile: String,
