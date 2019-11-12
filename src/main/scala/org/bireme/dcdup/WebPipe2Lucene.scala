@@ -28,7 +28,7 @@ object WebPipe2Lucene extends App {
     System.err.println("usage: WebPipe2Lucene " +
       "\n\t-pipe=<pipeFile> - DeDup piped input file" +
       "\n\t-pipeFileEncod=<pipeFileEncoding> - pipe file character encoding" +
-      "\n\t-dedupUrl=<DeDupBaseUrl> - DeDup url service" +
+      "\n\t-dedupUrl=<DeDupBaseUrl> - DeDup url service  (http://dedup.bireme.org/services')" +
       "\n\t-index=<indexName> - DeDup index Name" +
       "\n\t-schema=<schemaName> - DeDup schema name" +
       "\n\t[--resetIndex]")

@@ -12,7 +12,7 @@ import java.nio.charset.{Charset, CodingErrorAction}
 import java.nio.file.{Files, Paths, StandardOpenOption}
 
 import br.bireme.ngrams.NGSchema
-import org.apache.http.client.methods.{HttpGet, HttpPost}
+import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.util.EntityUtils
@@ -87,7 +87,7 @@ class WebDoubleCheckDuplicated {
       checkPipeFile(pipeFile, pipeFileEncoding, s"${deDupBaseUrl.trim}/schema/$schemaName")
     if (bad > 0) println(s"\nSkipping $bad bad lines from pipe file. See file: $badFile")
 
-    val schemaStr = loadSchema(deDupBaseUrl, schemaName)
+    val schemaStr = Tools.loadSchema(deDupBaseUrl, schemaName)
 //println(s"[$schemaStr]")
     val ngSchema = new NGSchema(schemaName, schemaStr)
 
@@ -231,34 +231,6 @@ class WebDoubleCheckDuplicated {
 
     httpClient.close()
 //println(s"ret=[$ret]")
-    ret
-  }
-
-  /**
-    * Loads a schema file from the DeDup server
-    *
-    * @param baseUrl url to DeDup webservice, usually http://dedup.bireme.org/services
-    * @param schemaName DeDup data schema name. See http://dedup.bireme.org/services/schemas
-    * @return the schema as a String
-    */
-  private def loadSchema(baseUrl: String,
-                         schemaName: String): String = {
-    val baseUrlTrim = baseUrl.trim
-    val burl = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
-    val schemaUrl = burl + "schema/xml/" +  schemaName
-    val httpClient = HttpClientBuilder.create().build()
-    val get = new HttpGet(schemaUrl)
-
-    get.setHeader("Content-type", "text/plain;charset=utf-8")
-    val response = httpClient.execute(get)
-    val statusCode = response.getStatusLine.getStatusCode
-    val ret = if (statusCode == 200) {
-      val content = EntityUtils.toString(response.getEntity)
-      if (content.startsWith("ERROR:")) throw new IOException(content)
-      content
-    } else throw new IOException(s"url=$schemaUrl statusCode=$statusCode")
-
-    httpClient.close()
     ret
   }
 }

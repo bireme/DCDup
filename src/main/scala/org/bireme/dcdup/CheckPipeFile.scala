@@ -8,7 +8,7 @@
 package org.bireme.dcdup
 
 import java.io.{BufferedWriter, FileOutputStream, OutputStreamWriter, StringReader}
-import java.nio.charset.{Charset, CharsetDecoder, CharsetEncoder, CodingErrorAction, MalformedInputException}
+import java.nio.charset.{Charset, CharsetDecoder, CharsetEncoder, CodingErrorAction}
 
 import io.circe.{HCursor, Json, JsonObject, ParsingFailure}
 import io.circe.parser._
@@ -41,7 +41,12 @@ object CheckPipeFile extends App {
       "\n\nusage: CheckPipeFile" +
       "\n\t-pipe=<pipeFile> - input piped file" +
       "\n\t[-pipeEncoding=<encoding>] - piped file encoding. Default is utf-8" +
-      "\n\t(-schemaUrl=<DeDup url>|-schemaFile=<path>) - DeDup schema location url or file path" +
+      "\n\t(" +
+      "\n\t  -dedupUrl=<DeDupBaseUrl> - DeDup url service  (http://dedup.bireme.org/services)" +
+      "\n\t  -schema=<schemaName> - DeDup schema name" +
+      "|" +
+      "\n\t  -schemaFile=<path>) - DeDup schema location url or file path" +
+      "\n\t)" +
       "\n\t-good=<file path> - file that contains piped lines following the schema" +
       "\n\t-bad=<file path> - file that contains piped lines that does not follow the schema"
     )
@@ -61,31 +66,35 @@ object CheckPipeFile extends App {
   }
 
   val pipe = parameters("pipe")
-  val encoding = parameters.getOrElse("pipeEncoding", "utf-8")
-  val schemaUrl = parameters.get("schemaUrl")
+  val encoding = parameters.getOrElse("pipeEncoding", "utf-8").trim
+  val encoding2 = if (encoding.isEmpty) "utf-8" else encoding
+  val dedupUrl = parameters.get("dedupUrl")
+  val schema = parameters.get("schema")
   val schemaPath = parameters.get("schemaFile")
   val good = parameters("good")
   val bad = parameters("bad")
 
   Try {
-    schemaUrl match {
-      case Some(url) => VerifyPipeFile.checkRemote(pipe, encoding, url, good, bad)
-      case None => schemaPath match {
-        case Some(path) => VerifyPipeFile.checkLocal(pipe, encoding, path, good, bad)
-        case None => new IllegalArgumentException("use 'schemaUrl' or 'schemaPath'")
-      }
+    dedupUrl match {
+      case Some(durl) =>
+        schema match {
+          case Some(sch) =>
+            val url: String = Tools.loadSchema(durl, sch)
+            VerifyPipeFile.checkRemote(pipe, encoding2, url, good, bad)
+          case None => new IllegalArgumentException("use 'dedupUrl + schema' or 'schemaPath'")
+        }
+      case None =>
+        schemaPath match {
+          case Some(spath) => VerifyPipeFile.checkLocal(pipe, encoding2, spath, good, bad)
+          case None => new IllegalArgumentException("use 'dedupUrl + schema' or 'schemaPath'")
+        }
     }
   } match {
     case Success((goodDocs, badDocs)) =>
       println(s"Properly formatted lines: $goodDocs")
       println(s"Incorrectly formatted lines : $badDocs")
     case Success(_) => throw new IllegalArgumentException("Invalid file format")
-    case Failure(e) => e match {
-      case _: MalformedInputException =>
-        println(s"==> The encoding[$encoding] specified as '-pipeEncoding' " +
-          "parameter seems not to input piped file encoding.")
-      case _ => throw e
-    }
+    case Failure(e) => throw e
   }
 }
 
@@ -194,7 +203,7 @@ object VerifyPipeFile {
                        isJson: Boolean,
                        goodWriter: BufferedWriter,
                        badWriter: BufferedWriter): (Int,Int) = {
-    val optCheck = if (isJson) parseSchemaJson(schema) else parseSchemaXml(schema)
+    val optCheck: Option[Check] = if (isJson) parseSchemaJson(schema) else parseSchemaXml(schema)
 
     optCheck match {
       case Some(check) =>
@@ -225,10 +234,9 @@ object VerifyPipeFile {
           getFieldsJson(doc).map {
             fields: Map[String, Map[String, Option[String]]] =>
               val fields2: Map[String, (Int, Option[Int])] = getFieldsJson(fields)
-              val maxPos: Int = fields2.values.map(_._1).max
 
               Check(
-                getMinFieldsJson(fields2, maxPos).get,
+                getMinFieldsJson(fields2).get,
                 getIdPosJson(fields2).get,
                 getDbPosJson(fields2).get,
                 fields2
@@ -256,10 +264,9 @@ object VerifyPipeFile {
       val docBuilder: DocumentBuilder = docFactory.newDocumentBuilder()
       val doc: Document = docBuilder.parse(new InputSource(new StringReader(schema)))
       val fields: Map[String, (Int, Option[Int])] = getFieldsXml(doc)
-      val maxPos: Int = fields.map(_._2._1.toInt).max
 
       Check(
-        getMinFieldsXml(doc, maxPos).get,
+        getMinFieldsXml(doc).get,
         getIdPosXml(doc).get,
         getDbPosXml(doc).get,
         fields
@@ -272,31 +279,29 @@ object VerifyPipeFile {
     }
   }
 
-  private def getMinFieldsJson(doc: Map[String, (Int, Option[Int])],
-                               maxPos: Int): Option[Int] = {
+  private def getMinFieldsJson(doc: Map[String, (Int, Option[Int])]): Option[Int] = {
     val iter: Iterable[Int] = doc.values.map(_._1)
 
     if (iter.isEmpty) None
-    else Some(Integer.max(maxPos + 1, iter.max))
+    else Some(iter.min)
   }
 
-  private def getMinFieldsXml(doc: Document,
-                              maxPos: Int): Option[Int] = {
+  private def getMinFieldsXml(doc: Document): Option[Int] = {
     val list = doc.getElementsByTagName("score")
-    val result: Int = (0 until list.getLength).foldLeft(-1) {
+    val result: Int = (0 until list.getLength).foldLeft(Integer.MAX_VALUE) {
       case (min, idx) =>
         Option(list.item(idx).getAttributes) match {
           case Some(att) =>
             Option(att.getNamedItem("minFields")) match {
               case Some(minf) =>
                   val mf = minf.getTextContent.toInt
-                  if (min == -1) mf else Math.min(min, mf)
-              case None => -1
+                  Math.min(min, mf)
+              case None => Integer.MAX_VALUE
             }
-          case None => -1
+          case None => Integer.MAX_VALUE
         }
     }
-    if (result == -1) None else Some(Integer.max(maxPos + 1, result))
+    if (result == Integer.MAX_VALUE) None else Some(result)
   }
 
   /**
@@ -432,8 +437,12 @@ object VerifyPipeFile {
   private def checkLine(check: Check,
                         line: String): Boolean = {
     val fields: Array[String] = line.trim.split(" *\\| *", 100)
+    val nonEmptyFields: Int = fields.foldLeft(0) {
+      case (tot, fld) => if (fld.trim.nonEmpty) tot + 1 else tot
+    }
 
-    /*val x1 = (fields.length - 2) >= check.minFields
+    /*
+    val x1 = (fields.length - 2) >= check.minFields
     val x2 = fields(check.idFieldPos).nonEmpty
     val x3 = fields(check.dbFieldPos).nonEmpty
     val x4 = check.otherFields.forall { // Check each other field condition
@@ -444,12 +453,12 @@ object VerifyPipeFile {
     }
     val x5 = x1 && x2 && x3 && x4
     println(x5)
-*/
+  */
 
-    (fields.length - 2) >= check.minFields &&    // Check if there are a minimum number of fields
-    fields(check.idFieldPos).nonEmpty &&         // Check if id field is present
-    fields(check.dbFieldPos).nonEmpty &&         // Check if database field is present
-    check.otherFields.forall {                   // Check each other field condition
+    (nonEmptyFields - 3) >= check.minFields  &&    // Check if there are a minimum number of non empty fields except (id, database, title)
+    fields(check.idFieldPos).nonEmpty &&           // Check if id field is present
+    fields(check.dbFieldPos).nonEmpty &&           // Check if database field is present
+    check.otherFields.forall {                     // Check each other field condition
       field =>
         fields(field._2._1).isEmpty ||           // Check if the field is present or required field is not
         field._2._2.forall(reqField => fields(reqField).nonEmpty)
