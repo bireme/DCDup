@@ -7,7 +7,7 @@
 
 package org.bireme.dcdup
 
-import java.io.{BufferedWriter, FileOutputStream, OutputStreamWriter, StringReader}
+import java.io.{BufferedWriter, FileOutputStream, IOException, OutputStreamWriter, StringReader}
 import java.nio.charset.{Charset, CharsetDecoder, CharsetEncoder, CodingErrorAction}
 
 import io.circe.{HCursor, Json, JsonObject, ParsingFailure}
@@ -79,7 +79,9 @@ object CheckPipeFile extends App {
       case Some(durl) =>
         schema match {
           case Some(sch) =>
-            val url: String = Tools.loadSchema(durl, sch)
+            val baseUrlTrim = durl.trim
+            val burl = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
+            val url: String = burl + "schema/" +  sch.trim
             VerifyPipeFile.checkRemote(pipe, encoding2, url, good, bad)
           case None => new IllegalArgumentException("use 'dedupUrl + schema' or 'schemaPath'")
         }
@@ -93,7 +95,7 @@ object CheckPipeFile extends App {
     case Success((goodDocs, badDocs)) =>
       println(s"Properly formatted lines: $goodDocs")
       println(s"Incorrectly formatted lines : $badDocs")
-    case Success(_) => throw new IllegalArgumentException("Invalid file format")
+    case Success(e) => throw new IOException(e.toString)
     case Failure(e) => throw e
   }
 }
@@ -120,14 +122,11 @@ object VerifyPipeFile {
                  bad: String): (Int, Int) = {
     val codAction: CodingErrorAction = CodingErrorAction.REPLACE
     val encoder1: CharsetEncoder = Charset.forName(encoding).newEncoder()
-                                   .onMalformedInput(codAction)
-                                   .onUnmappableCharacter(codAction)
+                                   .onMalformedInput(codAction).onUnmappableCharacter(codAction)
     val encoder2: CharsetEncoder = Charset.forName(encoding).newEncoder()
-                                   .onMalformedInput(codAction)
-                                   .onUnmappableCharacter(codAction)
+                                   .onMalformedInput(codAction).onUnmappableCharacter(codAction)
     val decoder: CharsetDecoder = Charset.forName(encoding).newDecoder()
-                                  .onMalformedInput(codAction)
-                                  .onUnmappableCharacter(codAction)
+                                  .onMalformedInput(codAction).onUnmappableCharacter(codAction)
     val reader: BufferedSource = Source.fromFile(pipe)(decoder)
     val lines: Iterator[String] = reader.getLines()
     val source: BufferedSource = Source.fromFile(schemaFile, "utf-8")
@@ -163,14 +162,11 @@ object VerifyPipeFile {
                   bad: String): (Int, Int) = {
     val codAction: CodingErrorAction = CodingErrorAction.REPLACE
     val encoder1: CharsetEncoder = Charset.forName(encoding).newEncoder()
-      .onMalformedInput(codAction)
-      .onUnmappableCharacter(codAction)
+      .onMalformedInput(codAction).onUnmappableCharacter(codAction)
     val encoder2: CharsetEncoder = Charset.forName(encoding).newEncoder()
-      .onMalformedInput(codAction)
-      .onUnmappableCharacter(codAction)
+      .onMalformedInput(codAction).onUnmappableCharacter(codAction)
     val decoder: CharsetDecoder = Charset.forName(encoding).newDecoder()
-      .onMalformedInput(codAction)
-      .onUnmappableCharacter(codAction)
+      .onMalformedInput(codAction).onUnmappableCharacter(codAction)
     val reader: BufferedSource = Source.fromFile(pipe)(decoder)
     val lines: Iterator[String] = reader.getLines()
     val source: BufferedSource = Source.fromURL(schemaUrl, "utf-8")
@@ -222,7 +218,7 @@ object VerifyPipeFile {
   }
 
   /**
-    * Parse a Json DeDup schema string and convert it into a map
+    * Parse a Json DeDup schema string and convert it into a Check object
     *
     * @param schema DeDup schema content string (json format)
     * @return the Check case class
@@ -236,7 +232,7 @@ object VerifyPipeFile {
               val fields2: Map[String, (Int, Option[Int])] = getFieldsJson(fields)
 
               Check(
-                getMinFieldsJson(fields2).get,
+                getMinFieldsJson(doc).get,
                 getIdPosJson(fields2).get,
                 getDbPosJson(fields2).get,
                 fields2
@@ -279,11 +275,16 @@ object VerifyPipeFile {
     }
   }
 
-  private def getMinFieldsJson(doc: Map[String, (Int, Option[Int])]): Option[Int] = {
-    val iter: Iterable[Int] = doc.values.map(_._1)
+  private def getMinFieldsJson(doc: Json): Option[Int] = {
+    val cursor: HCursor = doc.hcursor
+    val x1: Option[Iterable[Json]] = cursor.downField("score").values
+    val x2: Option[Iterable[JsonObject]] = x1.map(_.flatMap(_.asObject))
+    val x3: Option[Iterable[Map[String, Json]]] = x2.map(_.map(_.toMap))
+    val x4: Option[Iterable[Json]] = x3.map(_.flatMap(_.get("minFields")))
+    val x5: Option[Iterable[String]] = x4.map(_.flatMap(_.asString))
+    val x6: Option[Iterable[Int]] = x5.map(_.map(_.toInt))
 
-    if (iter.isEmpty) None
-    else Some(iter.min)
+    x6.map(_.min)
   }
 
   private def getMinFieldsXml(doc: Document): Option[Int] = {
@@ -355,22 +356,34 @@ object VerifyPipeFile {
     */
   private def getFieldsJson(doc: Json): Option[Map[String, Map[String, Option[String]]]] = {
     val cursor: HCursor = doc.hcursor
-    val x1: Option[Iterable[Json]] = cursor.downField("params").downArray.values
+    val x1: Option[Iterable[Json]] = cursor.downField("params").values
     val x2: Option[Seq[Json]] = x1.map(_.toSeq)
     val x3: Option[Seq[JsonObject]] = x2.map(_.flatMap(_.asObject))
     val x4: Option[Seq[Map[String, Json]]] = x3.map(_.map(_.toMap))
     val x5: Option[Seq[Map[String, Option[String]]]] = x4.map {
-      seq: Seq[Map[String, Json]] => seq.map(_.map(kv => kv._1 -> kv._2.asString))
+      seq: Seq[Map[String, Json]] => seq.map {
+        map =>
+          map.map {
+            kv =>
+              val vl: String = {
+                if (kv._2.isNumber) kv._2.asNumber.map(_.toString).getOrElse("").trim
+                else kv._2.asString.getOrElse("").trim
+              }
+              val value: Option[String] = if (vl.isEmpty) None else Some(vl)
+              kv._1 -> value
+          }
+      }
     }
     x5.map {
       seq => seq.foldLeft(Map[String, Map[String, Option[String]]]()) {
-        case (mp, emap) =>
-          emap.get("name") match {
-            case Some(name) => name match {
-              case Some(nm) => if (nm.trim.isEmpty) mp else mp + (nm -> emap)
-              case None => mp
-            }
-            case None => mp
+        case (map:Map[String, Map[String, Option[String]]], auxmap:Map[String, Option[String]]) =>
+          auxmap.get("name") match {
+            case Some(oname) =>
+              oname match {
+                case Some(name) => map + (name -> auxmap)
+                case None => map
+              }
+            case None => map
           }
       }
     }
@@ -386,8 +399,10 @@ object VerifyPipeFile {
       kv =>
         val mp: Map[String, Option[String]] = kv._2
         val pos: Int = mp("pos").get.toInt
-        val reqField: Option[Int] = mp.get("requiredField").flatten.map(_.toInt)
-
+        val reqField: Option[Int] = mp.get("requiredField").flatten.flatMap {
+          reqFldName: String =>
+            doc.get(reqFldName).flatMap(_.get("pos").flatten.map(_.toInt))
+        }
         kv._1 -> (pos, reqField)
     }
   }
@@ -441,27 +456,32 @@ object VerifyPipeFile {
       case (tot, fld) => if (fld.trim.nonEmpty) tot + 1 else tot
     }
 
-    /*
-    val x1 = (fields.length - 2) >= check.minFields
+/*
+    val x1 = (nonEmptyFields - 3) >= check.minFields
     val x2 = fields(check.idFieldPos).nonEmpty
     val x3 = fields(check.dbFieldPos).nonEmpty
     val x4 = check.otherFields.forall { // Check each other field condition
       field =>
-        val y1 = fields(field._2._1).isEmpty
-        val y2 = field._2._2.forall(reqField => fields(reqField).nonEmpty)
-        y1 || y2
+        val y0 = field._2._1 < fields.length
+        if (y0) {
+          val y1 = fields(field._2._1).isEmpty
+          val y2 = field._2._2.forall {
+            reqField => fields(reqField).nonEmpty
+          }
+          y1 || y2
+        } else false
     }
     val x5 = x1 && x2 && x3 && x4
     println(x5)
-  */
-
+*/
     (nonEmptyFields - 3) >= check.minFields  &&    // Check if there are a minimum number of non empty fields except (id, database, title)
     fields(check.idFieldPos).nonEmpty &&           // Check if id field is present
     fields(check.dbFieldPos).nonEmpty &&           // Check if database field is present
     check.otherFields.forall {                     // Check each other field condition
       field =>
-        fields(field._2._1).isEmpty ||           // Check if the field is present or required field is not
-        field._2._2.forall(reqField => fields(reqField).nonEmpty)
+        field._2._1 < fields.length &&
+          (fields(field._2._1).isEmpty ||           // Check if the field is present or required field is not
+           field._2._2.forall(reqField => fields(reqField).nonEmpty))
     }
   }
 }
