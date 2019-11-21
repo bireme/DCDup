@@ -81,14 +81,14 @@ class Pipe2Lucene {
       case (line,idx) =>
         if (idx % 10000 == 0) println(s"+++$idx")
         try {
-          NGrams.indexDocument(index, writer, schema, line, true)
+          NGrams.indexDocument(index, writer, schema, line, true, false)
         } catch {
           case ex:Exception =>
             Console.err.println(s"Skipping line [$line] => ${ex.getMessage}")
         }
     }
 
-    writer.flush()
+    writer.commit()
     print("Optimizing index ...")
     writer.forceMerge(1) // optimize index
     println("OK")
