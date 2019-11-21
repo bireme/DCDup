@@ -94,11 +94,11 @@ object DoubleCheckDuplicated extends App {
     if (bad > 0) println(s"Skipping $bad documents. See file: $badFileName\n")
 
     // Self check
-    CheckDuplicated.checkDuplicated(goodFileName, "utf-8" , None, ngSchema, outDupFile1, outNoDupFile1 + "_self",
+    CheckDuplicated.checkDuplicated(goodFileName, pipeFileEncoding , None, ngSchema, outDupFile1, outNoDupFile1 + "_self",
       selfCheck = true)
 
     // Check using given Lucene indexPath
-    CheckDuplicated.checkDuplicated(goodFileName, "utf-8" , Some(luceneIndex), ngSchema, outDupFile2, outNoDupFile1)
+    CheckDuplicated.checkDuplicated(goodFileName, pipeFileEncoding , Some(luceneIndex), ngSchema, outDupFile2, outNoDupFile1)
 
     // Take duplicate no duplicated documents between (pipe file and itself) and (pipe file and Dedup index)
     CheckDuplicated.takeNoDuplicated(ngSchema, outNoDupFile1 + "_self" , outNoDupFile1, outNoDupFile2)
