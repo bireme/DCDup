@@ -8,7 +8,7 @@
 package org.bireme.dcdup
 
 import java.io._
-import java.nio.charset.{Charset, CodingErrorAction}
+import java.nio.charset.Charset
 import java.nio.file.{Files, Paths, StandardOpenOption}
 
 import br.bireme.ngrams.NGSchema
@@ -93,13 +93,12 @@ class WebDoubleCheckDuplicated {
 
     // Self check
     println("\n***Self check")
-    CheckDuplicated.checkDuplicated(goodFile, pipeFileEncoding , None, ngSchema, outDupFile1,
+    CheckDuplicated.checkDuplicated(goodFile, "utf-8" , None, ngSchema, outDupFile1,
       outNoDupFile1 + "_self")
 
     // Check using DeDup service
     println("\n***Remote check")
-    remoteCheck(deDupBaseUrl, indexName, schemaName, pipeFile, pipeFileEncoding,
-                                                outDupFile2 + "_tmp")
+    remoteCheck(deDupBaseUrl, indexName, schemaName, goodFile, outDupFile2 + "_tmp")
 
     print("OK\nPost processing remote duplicated files ... ")
     val dupIds: Map[String, Set[String]] =
@@ -107,7 +106,7 @@ class WebDoubleCheckDuplicated {
 
     print("OK\n\nPost processing no duplicated remote files ... ")
     val idsDup: Set[String] = dupIds.foldLeft(Set[String]()) ((set, kv) => set ++ (kv._2 + kv._1))
-    CheckDuplicated.postProcessNoDup(pipeFile, pipeFileEncoding, ngSchema,
+    CheckDuplicated.postProcessNoDup(goodFile, "utf-8", ngSchema,
                                      outNoDupFile1 + "_remote", idsDup)
 
     print("OK\n\nRemoving duplicated lines ... ")
@@ -137,21 +136,15 @@ class WebDoubleCheckDuplicated {
     * @param indexName DeDup index name used to look for duplicates. See http://dedup.bireme.org/services/indexes
     * @param schemaName DeDup data schema name. See http://dedup.bireme.org/services/schemas
     * @param pipeFile input piped file used to look for similar docs
-    * @param pipeFileEncoding input piped file character encoding
     * @param outDupFile output piped file with the duplicated documents
     */
-  def remoteCheck(deDupBaseUrl: String,
-                  indexName: String,
-                  schemaName: String,
-                  pipeFile: String,
-                  pipeFileEncoding: String,
-                  outDupFile: String): Unit = {
+  private def remoteCheck(deDupBaseUrl: String,
+                          indexName: String,
+                          schemaName: String,
+                          pipeFile: String,
+                          outDupFile: String): Unit = {
     val quantity = 250 // Number of documents sent to each call of DeDup service
-    val codAction = CodingErrorAction.REPLACE
-    val decoder = Charset.forName(pipeFileEncoding).newDecoder()
-                  .onMalformedInput(codAction)
-                  .onUnmappableCharacter(codAction)
-    val src = Source.fromFile(pipeFile)(decoder)
+    val src = Source.fromFile(pipeFile, "utf-8")
     val dest = Files.newBufferedWriter(
       Paths.get(outDupFile), Charset.forName("utf-8"), StandardOpenOption.CREATE_NEW)
     var cur = 0

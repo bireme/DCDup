@@ -123,9 +123,9 @@ object CheckDuplicated {
     * @param outNoDupFile the unified no duplicated file
     */
   def takeNoDuplicated(ngSchema: NGSchema,
-                       selfNoDupFile: String,
-                       remoteNoDupFile: String,
-                       outNoDupFile: String): Unit = {
+                               selfNoDupFile: String,
+                               remoteNoDupFile: String,
+                               outNoDupFile: String): Unit = {
     val idPos: Integer = ngSchema.getNamesPos.get("id")
     val dbPos: Integer = ngSchema.getNamesPos.get("database")
     val elemNum: Int = ngSchema.getNamesPos.size

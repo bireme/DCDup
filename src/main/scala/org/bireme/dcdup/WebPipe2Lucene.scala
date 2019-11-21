@@ -8,7 +8,6 @@
 package org.bireme.dcdup
 
 import java.io.{File, IOException}
-import java.nio.charset.{Charset, CodingErrorAction}
 
 import org.apache.http.client.config.RequestConfig
 
@@ -70,11 +69,7 @@ object WebPipe2Lucene extends App {
     if (resIndex) resetIndex(deDupBaseUrl, indexName)
 
     val quantity = 1000 // Number of documents sent to each call of DeDup service
-    val codAction = CodingErrorAction.REPLACE
-    val decoder = Charset.forName(pipeFileEncoding).newDecoder()
-                  .onMalformedInput(codAction)
-                  .onUnmappableCharacter(codAction)
-    val src = Source.fromFile(pipeFile)(decoder)
+    val src = Source.fromFile(goodFileName, "uft-8")
     var cur = 0
 
     new LineBatchIterator(src.getLines(), quantity).foreach {

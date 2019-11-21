@@ -113,13 +113,15 @@ object VerifyPipeFile {
     * @param schemaFile - Path to the DeDup schema file.
     * @param good - path of the temporary file having lines that follow the schema
     * @param bad - path of the temporary file having lines that do not follow the schema
+    * @param schemaFileEncoding - schema file encoding
     * @return (number of good lines, number of bad lines)
     */
   def checkLocal(pipe: String,
                  encoding: String,
                  schemaFile: String,
                  good: String,
-                 bad: String): (Int, Int) = {
+                 bad: String,
+                 schemaFileEncoding: String = "utf-8"): (Int, Int) = {
     val codAction: CodingErrorAction = CodingErrorAction.REPLACE
     val encoder1: CharsetEncoder = Charset.forName(encoding).newEncoder()
                                    .onMalformedInput(codAction).onUnmappableCharacter(codAction)
@@ -129,7 +131,7 @@ object VerifyPipeFile {
                                   .onMalformedInput(codAction).onUnmappableCharacter(codAction)
     val reader: BufferedSource = Source.fromFile(pipe)(decoder)
     val lines: Iterator[String] = reader.getLines()
-    val source: BufferedSource = Source.fromFile(schemaFile, "utf-8")
+    val source: BufferedSource = Source.fromFile(schemaFile, schemaFileEncoding)
     val schema: String = source.getLines().mkString(" ")
     val goodWriter: BufferedWriter = new BufferedWriter(new OutputStreamWriter(
                                                         new FileOutputStream(good), encoder1))

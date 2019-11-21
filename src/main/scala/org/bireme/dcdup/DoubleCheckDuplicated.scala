@@ -84,12 +84,21 @@ object DoubleCheckDuplicated extends App {
                   outNoDupFile2: String): Unit = {
     val ngSchema: NGSchema = new NGSchema(confFile, confFile, confFileEncoding)
 
+    // Verifying pipe file integrity
+    println("\nVerifying pipe file integrity")
+    val goodFileName = File.createTempFile("good", "").getPath
+    val badFileName = File.createTempFile("bad", "").getPath
+    val (good,bad) = VerifyPipeFile.checkLocal(pipeFile, pipeFileEncoding,
+      confFile, goodFileName, badFileName, confFileEncoding)
+    println(s"Using $good documents")
+    if (bad > 0) println(s"Skipping $bad documents. See file: $badFileName\n")
+
     // Self check
-    CheckDuplicated.checkDuplicated(pipeFile, pipeFileEncoding , None, ngSchema, outDupFile1, outNoDupFile1 + "_self",
+    CheckDuplicated.checkDuplicated(goodFileName, "utf-8" , None, ngSchema, outDupFile1, outNoDupFile1 + "_self",
       selfCheck = true)
 
     // Check using given Lucene indexPath
-    CheckDuplicated.checkDuplicated(pipeFile, pipeFileEncoding , Some(luceneIndex), ngSchema, outDupFile2, outNoDupFile1)
+    CheckDuplicated.checkDuplicated(goodFileName, "utf-8" , Some(luceneIndex), ngSchema, outDupFile2, outNoDupFile1)
 
     // Take duplicate no duplicated documents between (pipe file and itself) and (pipe file and Dedup index)
     CheckDuplicated.takeNoDuplicated(ngSchema, outNoDupFile1 + "_self" , outNoDupFile1, outNoDupFile2)

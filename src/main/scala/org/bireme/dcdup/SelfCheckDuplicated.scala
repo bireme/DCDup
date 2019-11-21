@@ -7,6 +7,8 @@
 
 package org.bireme.dcdup
 
+import java.io.File
+
 import br.bireme.ngrams.NGSchema
 
 /** Check a DeDup input piped file against itself to look for duplicated documents.
@@ -43,5 +45,14 @@ object SelfCheckDuplicated extends App {
   val confFileEncod = parameters.getOrElse("confFileEncod", "utf-8")
   val ngSchema = new NGSchema(confFile, confFile, confFileEncod)
 
-  CheckDuplicated.checkDuplicated(pipeFile, pipeFileEncod, None, ngSchema, outDupFile, outNoDupFile, selfCheck = true)
+  // Verifying pipe file integrity
+  println("\nVerifying pipe file integrity")
+  val goodFileName = File.createTempFile("good", "").getPath
+  val badFileName = File.createTempFile("bad", "").getPath
+  val (good,bad) = VerifyPipeFile.checkLocal(pipeFile, pipeFileEncod,
+    confFile, goodFileName, badFileName, confFileEncod)
+  println(s"Using $good documents")
+  if (bad > 0) println(s"Skipping $bad documents. See file: $badFileName\n")
+
+  CheckDuplicated.checkDuplicated(goodFileName, "utf-8", None, ngSchema, outDupFile, outNoDupFile, selfCheck = true)
 }

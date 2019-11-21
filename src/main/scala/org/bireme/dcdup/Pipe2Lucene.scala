@@ -7,10 +7,11 @@
 
 package org.bireme.dcdup
 
-import br.bireme.ngrams.{NGrams,NGIndex,NGSchema}
+import java.io.File
 
-import java.nio.charset.CodingErrorAction
-import scala.io.{Codec, Source}
+import br.bireme.ngrams.{NGIndex, NGSchema, NGrams}
+
+import scala.io.Source
 
 /**
   * Create a local Lucene index from a input piped file
@@ -64,14 +65,17 @@ class Pipe2Lucene {
       writer.deleteAll()
       writer.commit()
     }
+    // Verifying pipe file integrity
+    println("\nVerifying pipe file integrity")
+    val goodFileName = File.createTempFile("good", "").getPath
+    val badFileName = File.createTempFile("bad", "").getPath
+    val (good,bad) = VerifyPipeFile.checkLocal(pipeFile, pipeEncoding, schemaFile, goodFileName, badFileName,
+                                               schemaEncoding)
+    println(s"Using $good documents")
+    if (bad > 0) println(s"Skipping $bad documents. See file: $badFileName\n")
+
     val schema = new NGSchema("schema", schemaFile, schemaEncoding)
-    val codec = pipeEncoding.toLowerCase match {
-      case "iso8859-1" => Codec.ISO8859
-      case _           => Codec.UTF8
-    }
-    val codAction = CodingErrorAction.REPLACE
-    val decoder = codec.decoder.onMalformedInput(codAction)
-    val reader = Source.fromFile(pipeFile)(decoder)
+    val reader = Source.fromFile(goodFileName, "utf-8")
 
     reader.getLines.zipWithIndex.foreach {
       case (line,idx) =>
