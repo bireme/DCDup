@@ -319,7 +319,7 @@ object CheckDuplicated {
                     line: String): String = {
     val split: Array[String] = line.split(" *\\| *", elemNum + 1)
     val id: String = split(idPos)
-    val posHifen: Int = id.indexOf('-')
+    val posHifen: Int = id.indexOf('^')   // usually id^language exported by MySQL2Pipe
     val pos: Int = if (posHifen == -1) id.length else posHifen
 
     Tools.normalize(id.substring(0, pos) + split(dbPos))   //iddb

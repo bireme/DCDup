@@ -185,9 +185,9 @@ object MySQL2Pipe extends App {
   }
 
   /**
-  * Given a pipe line, prefix the idFieldPos element with hifen plus the language 2 letters
+  * Given a pipe line, prefix the idFieldPos element with circumflex accent '^' plus the language 2 letters
     * @param str input pipe string
-    * @param idFieldPos position of the pipe of the position field string
+    * @param idFieldPos position in the pipe of the position field string
     * @return the output pipe string where the id field is suffixed with hifen plus the 2 letters language. For ex: 53498-pt
     */
   def suffixIdWithLang(str: String,
@@ -206,7 +206,7 @@ object MySQL2Pipe extends App {
               val prefix = if (idx == 0) str1 else str1 + "|"
 
               if (idx == langIndex) prefix + elem.substring(4) // index of the field that starts with the language. For ex |(pt)Meu querido...|
-              else if (idx == ifPos) s"$prefix$elem-$lang"
+              else if (idx == ifPos) s"$prefix$elem^$lang"
               else prefix + elem
           }
         case None => str

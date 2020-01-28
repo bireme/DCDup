@@ -61,7 +61,7 @@ class Pipe2Lucene {
 
     val index = new NGIndex(indexPath, indexPath, false)
     val writer = index.getIndexWriter
-    if (append) {
+    if (!append) {
       writer.deleteAll()
       writer.commit()
     }

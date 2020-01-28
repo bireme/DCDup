@@ -69,7 +69,7 @@ object WebPipe2Lucene extends App {
     if (resIndex) resetIndex(deDupBaseUrl, indexName)
 
     val quantity = 1000 // Number of documents sent to each call of DeDup service
-    val src = Source.fromFile(goodFileName, "uft-8")
+    val src = Source.fromFile(goodFileName, "utf-8")
     var cur = 0
 
     new LineBatchIterator(src.getLines(), quantity).foreach {
