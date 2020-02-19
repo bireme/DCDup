@@ -185,7 +185,7 @@ object MySQL2Pipe extends App {
   }
 
   /**
-  * Given a pipe line, prefix the idFieldPos element with circumflex accent '^' plus the language 2 letters
+  * Given a pipe line, prefix the idFieldPos element with circumflex accent '&#94;' plus the language 2 letters
     * @param str input pipe string
     * @param idFieldPos position in the pipe of the position field string
     * @return the output pipe string where the id field is suffixed with hifen plus the 2 letters language. For ex: 53498-pt

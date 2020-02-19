@@ -25,10 +25,11 @@ import java.net.{URI, URL}
 
 // import Ordering.Float.TotalOrdering  // scala 2.13.0
 
-import org.scalatest.Matchers._
 import org.scalatest._
-import org.scalatest.concurrent.Timeouts._
+import org.scalatest.concurrent.TimeLimits._
 import org.scalatest.time.SpanSugar._
+import org.scalatest.matchers.should.Matchers
+import Matchers._
 import scalaj.http.{Http, HttpRequest}
 
 import scala.io._
