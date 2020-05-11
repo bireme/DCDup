@@ -51,7 +51,7 @@ object Duplicated2Lucene extends App {
   val denied = getDeniedDocIds(dupFile, dupFileEncoding)
   val noDupPipeFile = genNoDupFile(pipeFile, pipeFileEncoding, denied)
   val p2l = new Pipe2Lucene()
-  p2l.toLucene(indexPath, schemaFile, schemaFileEncoding, noDupPipeFile,
+  p2l.convertToLucene(indexPath, schemaFile, schemaFileEncoding, noDupPipeFile,
                  "utf-8", append = false)
 
   new File(noDupPipeFile).delete()

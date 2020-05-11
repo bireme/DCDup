@@ -23,9 +23,10 @@ package org.bireme.dcdup
 
 import java.net.{URI, URL}
 
-// import Ordering.Float.TotalOrdering  // scala 2.13.0
+import org.scalatest.flatspec.AnyFlatSpec
 
-import org.scalatest._
+import Ordering.Float.TotalOrdering  // scala 2.13.0
+
 import org.scalatest.concurrent.TimeLimits._
 import org.scalatest.time.SpanSugar._
 import org.scalatest.matchers.should.Matchers
@@ -40,7 +41,7 @@ import scala.util.matching.Regex
 * author: Heitor Barbieri
 * date: 20170724
 */
-class DeDupServiceTest extends FlatSpec {
+class DeDupServiceTest extends AnyFlatSpec {
 
   /**
     * Load the content of a web page and check if there is a Timeout

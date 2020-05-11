@@ -83,8 +83,10 @@ class WebDoubleCheckDuplicated {
                   outNoDupFile2: String): Unit = {
     // Check pipe file
     println("\nChecking pipe file ...")
-    val (_, bad, goodFile, badFile) =
-      checkPipeFile(pipeFile, pipeFileEncoding, s"${deDupBaseUrl.trim}/schema/$schemaName")
+    val (_, bad, goodFile, badFile) = {
+      val schemaUrl: String = s"${deDupBaseUrl.trim}/schema/$schemaName"
+      checkPipeFile(pipeFile, pipeFileEncoding, schemaUrl)
+    }
     if (bad > 0) println(s"\nSkipping $bad bad lines from pipe file. See file: $badFile")
 
     val schemaStr = Tools.loadSchema(deDupBaseUrl, schemaName)
@@ -193,7 +195,7 @@ class WebDoubleCheckDuplicated {
                      indexName: String,
                      schemaName: String,
                      lines: String): String = {
-//println(s"lines=[$lines]")
+println(s"@lines=[$lines]")
     val baseUrlTrim = baseUrl.trim
     val burl = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
     val httpClient = HttpClientBuilder.create().build()

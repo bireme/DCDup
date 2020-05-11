@@ -25,16 +25,16 @@ import org.apache.http.util.EntityUtils
 object WebPipe2Lucene extends App {
   private def usage(): Unit = {
     System.err.println("usage: WebPipe2Lucene " +
-      "\n\t-pipe=<pipeFile> - DeDup piped input file" +
-      "\n\t-pipeFileEncod=<pipeFileEncoding> - pipe file character encoding" +
       "\n\t-dedupUrl=<DeDupBaseUrl> - DeDup url service  (http://dedup.bireme.org/services')" +
-      "\n\t-index=<indexName> - DeDup index Name" +
+      "\n\t-index=<indexName> - DeDup index name" +
       "\n\t-schema=<schemaName> - DeDup schema name" +
-      "\n\t[--resetIndex]")
+      "\n\t-pipe=<pipeFile> - DeDup piped input file" +
+      "\n\t[-pipeEncoding=<pipeFileEncoding>] - pipe file character encoding" +
+      "\n\t[--append]")
     System.exit(1)
   }
 
-  if (args.length < 5) usage()
+  if (args.length < 4) usage()
 
   val parameters = args.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
@@ -42,43 +42,47 @@ object WebPipe2Lucene extends App {
       if (split.length == 1) map + ((split(0).substring(2), ""))
       else map + ((split(0).substring(1), split(1)))
   }
-  val pipe = parameters("pipe")
-  val pipeFileEncod = parameters("pipeFileEncod")
   val dedupUrl = parameters("dedupUrl")
   val index = parameters("index")
   val schema = parameters("schema")
-  val resetIndex = parameters.contains("resetIndex")
+  val pipe = parameters("pipe")
+  val pipeEncoding = parameters.getOrElse("pipeEncoding", "utf-8")
+  val append = parameters.contains("append")
 
-  convert(pipe, pipeFileEncod, dedupUrl, index, schema, resetIndex)
+  convert(pipe, pipeEncoding, dedupUrl, index, schema, append)
 
   def convert(pipeFile: String,
               pipeFileEncoding: String,
               deDupBaseUrl: String,     // http://ts10vm.bireme.br:8180/DeDup/services/ or http://dedup.bireme.org/services
               indexName: String,
               schemaName: String,
-              resIndex: Boolean): Unit = {
+              append: Boolean): Unit = {
     // Verifying pipe file integrity
     println("\nVerifying pipe file integrity")
     val goodFileName = File.createTempFile("good", "").getPath
     val badFileName = File.createTempFile("bad", "").getPath
     val (good,bad) = VerifyPipeFile.checkRemote(pipeFile, pipeFileEncoding,
-      deDupBaseUrl + "/schema/" + schemaName, goodFileName, badFileName)
+          deDupBaseUrl + "/schema/" + schemaName, goodFileName, badFileName)
+
     println(s"Using $good documents")
-    if (bad > 0) println(s"Skipping $bad documents. See file: $badFileName\n")
+    if (good == 0) println(s"Probably error during the check using the remote schema [$schemaName]")
+    else {
+      if (bad > 0) println(s"Skipping $bad documents. See file: $badFileName\n")
 
-    if (resIndex) resetIndex(deDupBaseUrl, indexName)
+      if (!append) resetIndex(deDupBaseUrl, indexName)
 
-    val quantity = 1000 // Number of documents sent to each call of DeDup service
-    val src = Source.fromFile(goodFileName, "utf-8")
-    var cur = 0
+      val quantity = 1000 // Number of documents sent to each call of DeDup service
+      val src = Source.fromFile(goodFileName, "utf-8")
+      var cur = 0
 
-    new LineBatchIterator(src.getLines(), quantity).foreach {
+      new LineBatchIterator(src.getLines(), quantity).foreach {
         batch =>
           println(s"<<< $cur")
           rsend(deDupBaseUrl, indexName, schemaName, batch)
           cur += quantity
+      }
+      src.close()
     }
-    src.close()
   }
 
   /** Re-initialize the index, turning it size equals to zero.

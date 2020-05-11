@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   organization := "br.bireme",
   version := "0.1.0",
-  scalaVersion := "2.12.9" //"2.13.1" // binarios nao funcionam quando da execucao
+  scalaVersion := /*"2.12.9"*/ "2.13.2" // binarios nao funcionam quando da execucao
 )
 
 lazy val root = (project in file(".")).

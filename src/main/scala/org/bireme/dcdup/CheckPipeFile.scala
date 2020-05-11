@@ -20,7 +20,7 @@ import org.xml.sax.InputSource
 import scala.io._
 import scala.util.{Failure, Success, Try}
 
-/** Check an input piped file against a local Ngrams schema file or against
+/** Check an input piped file is well-formed against a local Ngrams schema file or against
   * a remote schema file in a DeDup server.
   *
   * author: Heitor Barbieri
@@ -45,7 +45,7 @@ object CheckPipeFile extends App {
       "\n\t  -dedupUrl=<DeDupBaseUrl> - DeDup url service  (http://dedup.bireme.org/services)" +
       "\n\t  -schema=<schemaName> - DeDup schema name" +
       "|" +
-      "\n\t  -schemaFile=<path>) - DeDup schema location url or file path" +
+      "\n\t  -schemaFile=<path>) - DeDup schema file path" +
       "\n\t)" +
       "\n\t-good=<file path> - file that contains piped lines following the schema" +
       "\n\t-bad=<file path> - file that contains piped lines that does not follow the schema"

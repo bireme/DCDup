@@ -23,9 +23,9 @@ object Pipe2Lucene extends App {
     System.err.println("usage: Pipe2Lucene" +
       "\n\t-index=<indexPath> - NGram's Lucene index path" +
       "\n\t-schema=<schemaFile> - NGram schema file" +
-      "\n\t-pipeFile=<pipeFile> - pipe file" +
-      "\n\t[-schemaFileEncod=<schemaFileEncoding>] - NGram schema file encoding" +
-      "\n\t[-pipeFileEncod=<pipeEncoding>] - pipe file encoding. Default is utf-8" +
+      "\n\t-pipe=<pipeFile> - pipe file" +
+      "\n\t[-schemaEncoding=<schemaFileEncoding>] - NGram schema file encoding. Default is utf-8" +
+      "\n\t[-pipeEncoding=<pipeEncoding>] - pipe file encoding. Default is utf-8" +
       "\n\t[--append] - append documents to an existing Lucene index"
     )
     System.exit(1)
@@ -42,22 +42,22 @@ object Pipe2Lucene extends App {
 
   val index = parameters("index")
   val schema = parameters("schema")
-  val pipeFile = parameters("pipeFile")
-  val schemaFileEncod = parameters.getOrElse("schemaFileEncod", "utf-8")
-  val pipeFileEncod = parameters.getOrElse("pipeFileEncod", "utf-8")
+  val pipe = parameters("pipe")
+  val schemaEncoding = parameters.getOrElse("schemaEncoding", "utf-8")
+  val pipeEncoding = parameters.getOrElse("pipeEncoding", "utf-8")
   val append = parameters.contains("append")
   val p2l = new Pipe2Lucene()
 
-  p2l.toLucene(index, schema, schemaFileEncod, pipeFile, pipeFileEncod, append)
+  p2l.convertToLucene(index, schema, schemaEncoding, pipe, pipeEncoding, append)
 }
 
 class Pipe2Lucene {
-  def toLucene(indexPath: String,
-               schemaFile: String,
-               schemaEncoding: String,
-               pipeFile: String,
-               pipeEncoding: String,
-               append: Boolean): Unit = {
+  def convertToLucene(indexPath: String,
+                      schemaFile: String,
+                      schemaEncoding: String,
+                      pipeFile: String,
+                      pipeEncoding: String,
+                      append: Boolean): Unit = {
 
     val index = new NGIndex(indexPath, indexPath, false)
     val writer = index.getIndexWriter

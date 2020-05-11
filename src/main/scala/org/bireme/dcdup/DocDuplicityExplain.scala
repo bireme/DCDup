@@ -15,8 +15,8 @@ import org.apache.lucene.search.{IndexSearcher, TermQuery}
 import org.apache.lucene.search.spell.NGramDistance
 
 import scala.collection.mutable
-import scala.collection.JavaConverters._
-//import scala.jdk.CollectionConverters._  // scala 2.13.0
+//import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._  // scala 2.13.0
 
 /**
 * Object used to explain if a given input piped string representing a document is duplicated or not compared to another one

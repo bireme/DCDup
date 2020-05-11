@@ -219,6 +219,16 @@ object Xml2Pipe extends App {
     }
   }
 
+private def getDocuments(fields: Set[String],
+                           parser: XMLStreamReader,
+                           first: Boolean = true): LazyList[Map[String, List[String]]] = {
+    getNextDoc(fields, parser, first) match {
+      case Some(doc) => doc #:: getDocuments(fields, parser, first = false)
+      case None => LazyList.empty[Map[String, List[String]]]
+    }
+  }
+
+  /* Before scala 2.13
   private def getDocuments(fields: Set[String],
                            parser: XMLStreamReader,
                            first: Boolean = true): Stream[Map[String, List[String]]] = {
@@ -227,6 +237,7 @@ object Xml2Pipe extends App {
       case None => Stream.Empty
     }
   }
+*/
 
   private def getNextDoc(fields: Set[String],
                          parser: XMLStreamReader,
