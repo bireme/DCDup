@@ -66,7 +66,7 @@ class DeDupServiceTest extends AnyFlatSpec {
     }
   }
 
-  val service = /*"http://localhost:8084/DeDup"*/ /*"http://serverofi5.bireme.br:8180/DeDup"*/ "http://dedup.bireme.org"
+  val service = /*"http://localhost:8084/DeDup"*/ /*"http://serverofi5.bireme.br:8180/DeDup"*/ "https://dedup.bireme.org"
 
   // === Check if the server is accessible ===
   "The DeDup Service page" should "be on" in {

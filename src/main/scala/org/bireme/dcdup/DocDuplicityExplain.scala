@@ -108,10 +108,10 @@ object DocDuplicityExplain extends App {
     val params: Parameters = schema.getParameters
     //val fields: Map[Int, Field] = params.getSearchFields.asScala.map[Int,Field](kv => (kv._1.toInt, kv._2)).toMap //scala 2.13.0
     val fields: Map[Int, Field] = params.getSearchFields.asScala.map(kv => (kv._1.toInt, kv._2)).toMap
-    val fields2: java.util.Map[String, Field] = params.getNameFields
+    //val fields2: java.util.Map[String, Field] = params.getNameFields
     val results: Seq[(Int,Int)] = fields.foldLeft(Seq[(Int,Int)]()) {
       case (seq, fld: (Int, Field)) =>
-        val check: Int = NGrams.checkField(ngDistance, fld._2, doc, fields2, doc2)
+        val check: Int = NGrams.checkField(ngDistance, fld._2, doc, doc2)
         seq :+ ((fld._1, check))
     }
     val idxFldPos: Int = params.getIndexedPos
