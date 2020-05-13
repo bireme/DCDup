@@ -192,6 +192,7 @@ object VerifyPipeFile {
     *
     * @param lines - input piped file line iterator
     * @param schema - DeDup schema content string
+    * @param isJson - indicate if the schema format is json (true) or xml (false)
     * @param goodWriter - writer to the temporary file having lines that follow the schema
     * @param badWriter - writer to the temporary file having lines that do not follow the schema
     * @return (number of good lines, number of bad lines)
@@ -207,12 +208,13 @@ object VerifyPipeFile {
       case Some(check) =>
         lines.foldLeft[(Int, Int)](0, 0) {
           case ((good, bad), line) =>
-            if (checkLine(check, line)) {
-              goodWriter.write(line + "\n")
-              (good + 1, bad)
-            } else {
-              badWriter.write(line + "\n")
-              (good, bad + 1)
+            checkLine(check, line) match {
+              case Some(errMess) =>
+                badWriter.write(s"$line [$errMess]\n")
+                (good, bad + 1)
+              case None =>
+                goodWriter.write(line + "\n")
+                (good + 1, bad)
             }
         }
       case None => (0, 0)
@@ -444,38 +446,30 @@ object VerifyPipeFile {
     }
   }
 
-  /**
-    * Check if a piped line follows the schema
-    *
-    * @param check the schema information
-    * @param line the line to be checked
-    * @return true if the line pass all checks and false otherwise
-    */
-  private def checkLine(check: Check,
-                        line: String): Boolean = {
+  /*private def checkLine0(check: Check,
+                         line: String): Boolean = {
     val fields: Array[String] = line.trim.split(" *\\| *", 100)
     val nonEmptyFields: Int = fields.foldLeft(0) {
       case (tot, fld) => if (fld.trim.nonEmpty) tot + 1 else tot
     }
-
-/*
-    val x1 = (nonEmptyFields - 3) >= check.minFields
-    val x2 = fields(check.idFieldPos).nonEmpty
-    val x3 = fields(check.dbFieldPos).nonEmpty
-    val x4 = check.otherFields.forall { // Check each other field condition
-      field =>
-        val y0 = field._2._1 < fields.length
-        if (y0) {
-          val y1 = fields(field._2._1).isEmpty
-          val y2 = field._2._2.forall {
-            reqField => fields(reqField).nonEmpty
-          }
-          y1 || y2
-        } else false
+    if(false) {
+      val x1 = (nonEmptyFields - 3) >= check.minFields
+      val x2 = fields(check.idFieldPos).nonEmpty
+      val x3 = fields(check.dbFieldPos).nonEmpty
+      val x4 = check.otherFields.forall { // Check each other field condition
+        field =>
+          val y0 = field._2._1 < fields.length
+          if (y0) {
+            val y1 = fields(field._2._1).isEmpty
+            val y2 = field._2._2.forall {
+              reqField => fields(reqField).nonEmpty
+            }
+            y1 || y2
+          } else false
+      }
+      val x5 = x1 && x2 && x3 && x4
+      println(x5)
     }
-    val x5 = x1 && x2 && x3 && x4
-    println(x5)
-*/
     (nonEmptyFields - 3) >= check.minFields  &&    // Check if there are a minimum number of non empty fields except (id, database, title)
     fields(check.idFieldPos).nonEmpty &&           // Check if id field is present
     fields(check.dbFieldPos).nonEmpty &&           // Check if database field is present
@@ -484,6 +478,34 @@ object VerifyPipeFile {
         field._2._1 < fields.length &&
           (fields(field._2._1).isEmpty ||           // Check if the field is present or required field is not
            field._2._2.forall(reqField => fields(reqField).nonEmpty))
+    }
+  }*/
+
+  /**
+    * Check if a piped line follows the schema
+    *
+    * @param check the schema information
+    * @param line the line to be checked
+    * @return the cause why the line broke a schema's rule
+    */
+  private def checkLine(check: Check,
+                        line: String): Option[String] = {
+    val fields: Array[String] = line.trim.split(" *\\| *", 100)
+    val nonEmptyFields: Int = fields.foldLeft(0) {
+      case (tot, fld) => if (fld.trim.nonEmpty) tot + 1 else tot
+    }
+
+    if ((nonEmptyFields - 3) < check.minFields) Some(s"number of fields are less than ${check.minFields}")
+    else if (fields(check.idFieldPos).isEmpty) Some("missing id field")
+    else if (fields(check.dbFieldPos).isEmpty) Some("missing database field")
+    else check.otherFields.foldLeft[Option[String]](None) { // Check each other field condition
+      case (opt, field) =>
+        if (opt.isEmpty) {
+            if (field._2._1 >= fields.length) Some(s"invalid field pos = ${field._2._1}")
+            else if (fields(field._2._1).nonEmpty && field._2._2.exists(fields(_).isEmpty))
+              Some(s"missing required field pos=${field._2._1}")
+            else None
+        } else None
     }
   }
 }
