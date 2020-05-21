@@ -25,13 +25,12 @@ import java.net.{URI, URL}
 
 import org.scalatest.flatspec.AnyFlatSpec
 
-import Ordering.Float.TotalOrdering  // scala 2.13.0
-
+import Ordering.Float.TotalOrdering
 import org.scalatest.concurrent.TimeLimits._
 import org.scalatest.time.SpanSugar._
 import org.scalatest.matchers.should.Matchers
 import Matchers._
-import scalaj.http.{Http, HttpRequest}
+import scalaj.http.{Http, HttpOptions, HttpRequest}
 
 import scala.io._
 import scala.util.matching.Regex
@@ -58,11 +57,7 @@ class DeDupServiceTest extends AnyFlatSpec {
     val urlStr: String = uri.toASCIIString
 
     failAfter(timeout = 60.seconds) {
-      val source: BufferedSource = Source.fromURL(urlStr, "utf-8")
-      val content: String = source.getLines().mkString("\n")
-
-      source.close()
-      content
+      Http(urlStr).option(HttpOptions.followRedirects(true)).charset("utf-8").asString.body
     }
   }
 

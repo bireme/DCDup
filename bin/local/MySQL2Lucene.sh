@@ -38,9 +38,14 @@ cd /home/javaapps/sbt-projects/DCDup || exit
 
 NOW=$(date +"%Y%m%d%H%M%S")
 
-java -cp target/scala-2.12/DCDup-assembly-0.1.0.jar org.bireme.dcdup.MySQL2Pipe -pipe=pipeOut_$NOW.txt -jsonField=text,_f,_e -repetitiveField=title $1 $2 $3 $4 $5 $6 $7
+java -cp target/scala-2.13/DCDup-assembly-0.1.0.jar org.bireme.dcdup.MySQL2Pipe -pipe=pipeOut_$NOW.txt -jsonField=text,_f,_e -repetitiveField=title $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16}
 
-java -cp target/scala-2.12/DCDup-assembly-0.1.0.jar org.bireme.dcdup.Pipe2Lucene -pipeFile=pipeOut_$NOW.txt -pipeFileEncod=utf-8 $1 $2 $3 $4 $5 $6 $7
+if [ "$?" -ne 0 ]; then
+  echo 'Pipe file generation error'
+  exit 1
+fi
+
+java -cp target/scala-2.13/DCDup-assembly-0.1.0.jar org.bireme.dcdup.Pipe2Lucene -pipeFile=pipeOut_$NOW.txt -pipeFileEncod=utf-8 $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16}
 
 #rm pipeOut_$NOW.txt
 

@@ -8,14 +8,8 @@
 package org.bireme.dcdup
 
 import java.io.{File, IOException}
-
-import org.apache.http.client.config.RequestConfig
-
 import scala.io.Source
-import org.apache.http.impl.client.HttpClientBuilder
-import org.apache.http.client.methods.{HttpGet, HttpPost}
-import org.apache.http.entity.StringEntity
-import org.apache.http.util.EntityUtils
+import scalaj.http.{Http, HttpOptions, HttpResponse}
 
 /**
   * Create a remote DeDup index from a piped file
@@ -25,7 +19,7 @@ import org.apache.http.util.EntityUtils
 object WebPipe2Lucene extends App {
   private def usage(): Unit = {
     System.err.println("usage: WebPipe2Lucene " +
-      "\n\t-dedupUrl=<DeDupBaseUrl> - DeDup url service  (http://dedup.bireme.org/services')" +
+      "\n\t-dedupUrl=<DeDupBaseUrl> - DeDup url service  (https://dedup.bireme.org/services')" +
       "\n\t-index=<indexName> - DeDup index name" +
       "\n\t-schema=<schemaName> - DeDup schema name" +
       "\n\t-pipe=<pipeFile> - DeDup piped input file" +
@@ -53,7 +47,7 @@ object WebPipe2Lucene extends App {
 
   def convert(pipeFile: String,
               pipeFileEncoding: String,
-              deDupBaseUrl: String,     // http://ts10vm.bireme.br:8180/DeDup/services/ or http://dedup.bireme.org/services
+              deDupBaseUrl: String,     // http://ts10vm.bireme.br:8180/DeDup/services/ or https://dedup.bireme.org/services
               indexName: String,
               schemaName: String,
               append: Boolean): Unit = {
@@ -95,18 +89,13 @@ object WebPipe2Lucene extends App {
     val baseUrlTrim = baseUrl.trim
     val burl = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
     val resetUrl = burl + "reset/" +  indexName
-    val httpClient = HttpClientBuilder.create().build()
-    val get = new HttpGet(resetUrl)
-    get.setHeader("Content-type", "text/plain;charset=utf-8")
-    val response = httpClient.execute(get)
-    val statusCode = response.getStatusLine.getStatusCode
 
-    if (statusCode == 200) {
-      val content = EntityUtils.toString(response.getEntity)
+    val response: HttpResponse[String] = Http(resetUrl).header("content-type", "text/plain")
+                                    .option(HttpOptions.followRedirects(true)).charset("utf-8").asString
+    if (response.code == 200) {
+      val content = response.body
       if (content.startsWith("ERROR:")) throw new IOException(content)
-    } else throw new IOException(s"status code:$statusCode")
-
-    httpClient.close()
+    } else throw new IOException(s"status code:${response.code}")
   }
 
   /** Add some documents into the index via DeDup webservice.
@@ -123,23 +112,20 @@ object WebPipe2Lucene extends App {
                     lines: String): String = {
     val baseUrlTrim = baseUrl.trim
     val burl = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
-    val httpClient = HttpClientBuilder.create().build()
-    val post = new HttpPost(burl + "putDocs/" + "/" + indexName + "/" + schemaName)
-    val postingString = new StringEntity(lines, "utf-8")
-//println(s"linhas=$lines")
-    post.setEntity(postingString)
-    post.setHeader("Content-type", "text/plain; charset=utf-8")
-    val response = httpClient.execute(post)
-    val statusCode = response.getStatusLine.getStatusCode
+    val response: HttpResponse[String] = Http(burl + "putDocs/" + "/" + indexName + "/" + schemaName)
+      .header("content-type", "text/plain")
+      .option(HttpOptions.followRedirects(true))
+      .charset("utf-8")
+      .postData(lines)
+      .asString
+    val statusCode = response.code
     val ret = if (statusCode == 200) {
-      val content = EntityUtils.toString(response.getEntity)
+      val content = response.body
       if (content.startsWith("ERROR:")) throw new IOException(content)
       val respo = optimizeIndex(burl, indexName)
       if (respo.startsWith("ERROR:")) throw new IOException(respo)
       content
     } else throw new IOException(s"status code:$statusCode")
-
-    httpClient.close()
     ret
   }
 
@@ -153,21 +139,20 @@ object WebPipe2Lucene extends App {
                             indexName: String): String = {
     val baseUrlTrim = baseUrl.trim
     val burl = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
-    val requestConfig = RequestConfig.custom().setSocketTimeout(5 * 60000).setConnectTimeout(10000).build()
-    val httpClient = HttpClientBuilder.create().build()
-    val get = new HttpGet(burl + "optimize/" + "/" + indexName)
-    get.setHeader("Content-type", "text/plain; charset=utf-8")
-    get.setConfig(requestConfig)
 
-    val response = httpClient.execute(get)
-    val statusCode = response.getStatusLine.getStatusCode
+    val response: HttpResponse[String] = Http(burl + "optimize/" + "/" + indexName)
+      .header("content-type", "text/plain")
+      .option(HttpOptions.followRedirects(true))
+      .charset("utf-8")
+      .timeout(connTimeoutMs = 5 * 60000, readTimeoutMs = 5 * 60000)
+      .asString
+
+    val statusCode = response.code
     val ret = if (statusCode == 200) {
-      val content = EntityUtils.toString(response.getEntity)
+      val content = response.body
       if (content.startsWith("ERROR:")) throw new IOException(content)
       content
     } else throw new IOException(s"status code:$statusCode")
-
-    httpClient.close()
     ret
   }
 }

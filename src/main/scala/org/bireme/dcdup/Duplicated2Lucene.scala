@@ -23,7 +23,7 @@ object Duplicated2Lucene extends App {
       "\n\t-pipeFile=<pipeFile> - pipe file used in NGram duplication process" +
       "\n\t-dupFile=<dupPipeFile> - duplicated pipe file (output file of duplication check)" +
       "\n\t-indexPath=<indexPath> - NGram's Lucene index path" +
-      "\n\t-schemaFile=<schemaFile> - NGram schema file" +
+      "\n\t-schema=<schemaFile> - NGram schema file" +
       "\n\t[-pipeFileEncoding=<pipeEncoding>] - pipe file encoding. Default is utf-8" +
       "\n\t[-dupFileEncoding=<pipeEncoding>] - pipe file encoding. Default is utf-8" +
       "\n\t[-schemaFileEncoding=<schemaEncoding>] - NGram schema file encoding"
@@ -43,7 +43,7 @@ object Duplicated2Lucene extends App {
   val pipeFile = parameters("pipeFile")
   val dupFile = parameters("dupFile")
   val indexPath = parameters("indexPath")
-  val schemaFile = parameters("schemaFile")
+  val schemaFile = parameters("schema")
   val pipeFileEncoding = parameters.getOrElse("pipeFileEncoding", "utf-8")
   val dupFileEncoding = parameters.getOrElse("dupFileEncoding", "utf-8")
   val schemaFileEncoding = parameters.getOrElse("schemaFileEncoding", "utf-8")

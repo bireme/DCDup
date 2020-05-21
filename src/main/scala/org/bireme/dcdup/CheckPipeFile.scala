@@ -16,6 +16,7 @@ import javax.xml.parsers.{DocumentBuilder, DocumentBuilderFactory}
 import org.bireme.dcdup.CheckPipeFile.Check
 import org.w3c.dom.{Document, NodeList}
 import org.xml.sax.InputSource
+import scalaj.http.{Http, HttpOptions}
 
 import scala.io._
 import scala.util.{Failure, Success, Try}
@@ -40,22 +41,23 @@ object CheckPipeFile extends App {
       " file in a DeDup server." +
       "\n\nusage: CheckPipeFile" +
       "\n\t-pipe=<pipeFile> - input piped file" +
-      "\n\t[-pipeEncoding=<encoding>] - piped file encoding. Default is utf-8" +
       "\n\t(" +
       "\n\t  -dedupUrl=<DeDupBaseUrl> - DeDup url service  (http://dedup.bireme.org/services)" +
       "\n\t  -schema=<schemaName> - DeDup schema name" +
-      "|" +
-      "\n\t  -schemaFile=<path>) - DeDup schema file path" +
+      "\n\t  |" +
+      "\n\t  -schema=<path>) - DeDup schema file path" +
       "\n\t)" +
       "\n\t-good=<file path> - file that contains piped lines following the schema" +
-      "\n\t-bad=<file path> - file that contains piped lines that does not follow the schema"
+      "\n\t-bad=<file path> - file that contains piped lines that does not follow the schema" +
+      "\n\t[-pipeEncoding=<encoding>] - piped file encoding. Default is utf-8"
     )
     System.exit(1)
   }
+  val seq = args.toSeq.filter(_.nonEmpty)
 
-  if (args.length < 4) usage()
+  if (seq.length < 4) usage()
  // Parse parameters
-  val parameters = args.foldLeft[Map[String,String]](Map()) {
+  val parameters = seq.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
       val split = par.split(" *= *", 2)
       if (split.length == 2) map + ((split(0).substring(1), split(1)))
@@ -70,7 +72,6 @@ object CheckPipeFile extends App {
   val encoding2 = if (encoding.isEmpty) "utf-8" else encoding
   val dedupUrl = parameters.get("dedupUrl")
   val schema = parameters.get("schema")
-  val schemaPath = parameters.get("schemaFile")
   val good = parameters("good")
   val bad = parameters("bad")
 
@@ -86,7 +87,7 @@ object CheckPipeFile extends App {
           case None => new IllegalArgumentException("use 'dedupUrl + schema' or 'schemaPath'")
         }
       case None =>
-        schemaPath match {
+        schema match {
           case Some(spath) => VerifyPipeFile.checkLocal(pipe, encoding2, spath, good, bad)
           case None => new IllegalArgumentException("use 'dedupUrl + schema' or 'schemaPath'")
         }
@@ -171,8 +172,8 @@ object VerifyPipeFile {
       .onMalformedInput(codAction).onUnmappableCharacter(codAction)
     val reader: BufferedSource = Source.fromFile(pipe)(decoder)
     val lines: Iterator[String] = reader.getLines()
-    val source: BufferedSource = Source.fromURL(schemaUrl, "utf-8")
-    val schema: String = source.getLines().mkString(" ")
+    val schema: String = Http(schemaUrl).option(HttpOptions.followRedirects(true))
+                         .charset("utf-8").asString.body
     val goodWriter: BufferedWriter = new BufferedWriter(new OutputStreamWriter(
       new FileOutputStream(good), encoder1))
     val badWriter: BufferedWriter = new BufferedWriter(new OutputStreamWriter(
@@ -180,7 +181,6 @@ object VerifyPipeFile {
     val (goodDocs, badDocs) = checkRaw(lines, schema, isJson = true, goodWriter, badWriter)
 
     reader.close()
-    source.close()
     goodWriter.close()
     badWriter.close()
 

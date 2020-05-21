@@ -30,10 +30,10 @@ object Pipe2Lucene extends App {
     )
     System.exit(1)
   }
+  val seq = args.toSeq.filter(_.nonEmpty)
+  if (seq.length < 3) usage()
 
-  if (args.length < 3) usage()
-
-  val parameters = args.foldLeft[Map[String,String]](Map()) {
+  val parameters = seq.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
       val split = par.split(" *= *", 2)
       if (split.length == 1) map + ((split(0).substring(2), ""))
@@ -66,7 +66,7 @@ class Pipe2Lucene {
       writer.commit()
     }
     // Verifying pipe file integrity
-    println("\nVerifying pipe file integrity")
+    println(s"\nVerifying pipe file integrity [$pipeFile]")
     val goodFileName = File.createTempFile("good", "").getPath
     val badFileName = File.createTempFile("bad", "").getPath
     val (good,bad) = VerifyPipeFile.checkLocal(pipeFile, pipeEncoding, schemaFile, goodFileName, badFileName,
@@ -81,7 +81,7 @@ class Pipe2Lucene {
       case (line,idx) =>
         if (idx % 10000 == 0) println(s"+++$idx")
         try {
-          NGrams.indexDocument(index, writer, schema, line, true, false)
+          NGrams.indexDocument(index, writer, schema, line, false, false)
         } catch {
           case ex:Exception =>
             Console.err.println(s"Skipping line [$line] => ${ex.getMessage}")
