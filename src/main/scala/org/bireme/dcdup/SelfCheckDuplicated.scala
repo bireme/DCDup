@@ -19,12 +19,12 @@ import br.bireme.ngrams.NGSchema
 object SelfCheckDuplicated extends App {
   private def usage(): Unit = {
     System.err.println("usage: SelfCheckDuplicated " +
-      "\n\t-pipeFile=<pipeFile> - DeDup piped input file" +
-      "\n\t-confFile=<confFile> - DeDup fields configuration file" +
+      "\n\t-pipe=<pipeFile> - DeDup piped input file" +
+      "\n\t-schema=<confFile> - DeDup schema file" +
       "\n\t-outDupFile=<outDupFile> - duplicated records found in pipe file" +
       "\n\t-outNoDupFile=<outNoDupFile> - no duplicated records between pipe file and itself" +
-      "\n\t[-pipeFileEncod=<pipeFileEncoding>] - pipe file character encoding. Default is utf-8" +
-      "\n\t[-confFileEncod=<confFileEncoding>] - DeDup fields configuration file character encoding. Default is utf-8")
+      "\n\t[-pipeEncoding=<pipeFileEncoding>] - pipe file character encoding. Default is utf-8" +
+      "\n\t[-schemaEncoding=<schemaFileEncoding>] - DeDup schema file character encoding. Default is utf-8")
     System.exit(1)
   }
 
@@ -37,20 +37,19 @@ object SelfCheckDuplicated extends App {
       else map + ((split(0).substring(1), split(1)))
   }
 
-  val pipeFile = parameters("pipeFile")
-  val confFile = parameters("confFile")
+  val pipe = parameters("pipe")
+  val schema = parameters("schema")
   val outDupFile = parameters("outDupFile")
   val outNoDupFile = parameters("outNoDupFile")
-  val pipeFileEncod = parameters.getOrElse("pipeFileEncod", "utf-8")
-  val confFileEncod = parameters.getOrElse("confFileEncod", "utf-8")
-  val ngSchema = new NGSchema(confFile, confFile, confFileEncod)
+  val pipeEncoding = parameters.getOrElse("pipeEncoding", "utf-8")
+  val schemaEncoding = parameters.getOrElse("schemaEncoding", "utf-8")
+  val ngSchema = new NGSchema(schema, schema, schemaEncoding)
 
   // Verifying pipe file integrity
   println("\nVerifying pipe file integrity")
   val goodFileName = File.createTempFile("good", "").getPath
   val badFileName = File.createTempFile("bad", "").getPath
-  val (good,bad) = VerifyPipeFile.checkLocal(pipeFile, pipeFileEncod,
-    confFile, goodFileName, badFileName, confFileEncod)
+  val (good,bad) = VerifyPipeFile.checkLocal(pipe, pipeEncoding, schema, goodFileName, badFileName, schemaEncoding)
   println(s"Using $good documents")
   if (bad > 0) println(s"Skipping $bad documents. See file: $badFileName\n")
 

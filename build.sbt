@@ -10,17 +10,17 @@ lazy val root = (project in file(".")).
     name := "DCDup"
   )
 
-val commonsLangVersion = "3.9" //"3.8.1"
+val commonsLangVersion = "3.10" //"3.9"
 val commonsTextVersion = "1.8" //"1.7"
-val luceneVersion = "8.4.1" //"8.3.0" //"8.2.0"
+val luceneVersion = "8.5.1" //"8.4.1"
 //val jacksonVersion = /*"2.9.9.3"*/ "2.9.9"
-val httpClientVersion = "4.5.11" //"4.5.10" //"4.5.9"
+val httpClientVersion = "4.5.12" //"4.5.11"
 val scalajHttpVersion = "2.4.2" //"2.4.1"
-val mySQLVersion = "8.0.19" //"8.0.17" // "8.0.15"
+val mySQLVersion = "8.0.20" //"8.0.19"
 val logBackVersion = "1.2.3"
-val circeVersion = "0.12.3" //"0.12.1"
-val scalaTestVersion = "3.1.0" /*"3.2.0-M1"*/ //"3.0.8"
-val akkaVersion =  "2.6.3" //"2.5.25"
+val circeVersion = "0.13.0" //"0.12.3"
+val scalaTestVersion = "3.1.2" //"3.1.0"
+val akkaVersion =  "2.6.5" //"2.6.3"
 val xerces2Version = "2.12.0"
 //val hairyfotrVersion = "0.1.17"
 
@@ -47,7 +47,7 @@ libraryDependencies ++= Seq(
   "xerces" % "xercesImpl" % xerces2Version
 )
 
-test in assembly := {}
+//test in assembly := {}
 
 logBuffered in Test := false
 trapExit := false

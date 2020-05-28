@@ -124,9 +124,9 @@ object VerifyPipeFile {
                  bad: String,
                  schemaFileEncoding: String = "utf-8"): (Int, Int) = {
     val codAction: CodingErrorAction = CodingErrorAction.REPLACE
-    val encoder1: CharsetEncoder = Charset.forName(encoding).newEncoder()
+    val encoder1: CharsetEncoder = Charset.forName("utf-8").newEncoder()
                                    .onMalformedInput(codAction).onUnmappableCharacter(codAction)
-    val encoder2: CharsetEncoder = Charset.forName(encoding).newEncoder()
+    val encoder2: CharsetEncoder = Charset.forName("utf-8").newEncoder()
                                    .onMalformedInput(codAction).onUnmappableCharacter(codAction)
     val decoder: CharsetDecoder = Charset.forName(encoding).newDecoder()
                                   .onMalformedInput(codAction).onUnmappableCharacter(codAction)
@@ -164,9 +164,9 @@ object VerifyPipeFile {
                   good: String,
                   bad: String): (Int, Int) = {
     val codAction: CodingErrorAction = CodingErrorAction.REPLACE
-    val encoder1: CharsetEncoder = Charset.forName(encoding).newEncoder()
+    val encoder1: CharsetEncoder = Charset.forName("utf-8").newEncoder()
       .onMalformedInput(codAction).onUnmappableCharacter(codAction)
-    val encoder2: CharsetEncoder = Charset.forName(encoding).newEncoder()
+    val encoder2: CharsetEncoder = Charset.forName("utf-8").newEncoder()
       .onMalformedInput(codAction).onUnmappableCharacter(codAction)
     val decoder: CharsetDecoder = Charset.forName(encoding).newDecoder()
       .onMalformedInput(codAction).onUnmappableCharacter(codAction)

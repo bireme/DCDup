@@ -29,7 +29,7 @@ import scala.io.Source
 object WebDoubleCheckDuplicated extends App {
   private def usage(): Unit = {
     System.err.println("usage: WebDoubleCheckDuplicated " +
-      "\n\t-pipeFile=<pipeFile> - DeDup piped input file" +
+      "\n\t-pipe=<pipeFile> - DeDup piped input file" +
       "\n\t-dedupUrl=<DeDupBaseUrl> - DeDup url service. For ex: http://dedup.bireme.org/services" +
       "\n\t-index=<indexName> - DeDup index name" +
       "\n\t-schema=<schemaName> - DeDup schema name" +
@@ -37,7 +37,7 @@ object WebDoubleCheckDuplicated extends App {
       "\n\t-outDupFile2=<outDupFile2> - duplicated records found between pipe file and Dedup index" +
       "\n\t-outNoDupFile1=<outNoDupFile1> - no duplicated records between input pipe file and Dedup index" +
       "\n\t-outNoDupFile2=<outNoDupFile2> - no duplicated records between (pipe file and itself) and (pipe file and Dedup index)" +
-      "\n\t[-pipeFileEncod=<pipeFileEncoding>] - pipe file character encoding. Default is utf-8")
+      "\n\t[-pipeEncoding=<pipeFileEncoding>] - pipe file character encoding. Default is utf-8")
     System.exit(1)
   }
 
@@ -49,7 +49,7 @@ object WebDoubleCheckDuplicated extends App {
       if (split.length == 1) map + ((split(0).substring(2), ""))
       else map + ((split(0).substring(1), split(1)))
   }
-  val pipeFile = parameters("pipeFile")
+  val pipe = parameters("pipe")
   val dedupUrl = parameters("dedupUrl")
   val index = parameters("index")
   val schema = parameters("schema")
@@ -57,10 +57,10 @@ object WebDoubleCheckDuplicated extends App {
   val outDupFile2 = parameters("outDupFile2")
   val outNoDupFile1 = parameters("outNoDupFile1")
   val outNoDupFile2 = parameters("outNoDupFile2")
-  val pipeFileEncod = parameters.getOrElse("pipeFileEncod", "utf-8")
+  val pipeEncoding = parameters.getOrElse("pipeEncoding", "utf-8")
 
   val dup = new WebDoubleCheckDuplicated()
-  dup.doubleCheck(pipeFile, pipeFileEncod, dedupUrl, index, schema,
+  dup.doubleCheck(pipe, pipeEncoding, dedupUrl, index, schema,
                   outDupFile1, outDupFile2, outNoDupFile1, outNoDupFile2)
 }
 
@@ -72,11 +72,11 @@ object WebDoubleCheckDuplicated extends App {
   * date: 20161208
 */
 class WebDoubleCheckDuplicated {
-  def doubleCheck(pipeFile: String,
-                  pipeFileEncoding: String,
-                  deDupBaseUrl: String,     // http://ts10vm.bireme.br:8180/DeDup/services/ or http://dedup.bireme.org/services
-                  indexName: String,        // Verifying pipe file integrity
-                  schemaName: String,       // used in DeDup service
+  def doubleCheck(pipe: String,
+                  pipeEncoding: String,
+                  deDupBaseUrl: String, // http://ts10vm.bireme.br:8180/DeDup/services/ or http://dedup.bireme.org/services
+                  indexName: String, // Verifying pipe file integrity
+                  schemaName: String, // used in DeDup service
                   outDupFile1: String,
                   outDupFile2: String,
                   outNoDupFile1: String,
@@ -85,7 +85,7 @@ class WebDoubleCheckDuplicated {
     println("\nChecking pipe file ...")
     val (_, bad, goodFile, badFile) = {
       val schemaUrl: String = s"${deDupBaseUrl.trim}/schema/$schemaName"
-      checkPipeFile(pipeFile, pipeFileEncoding, schemaUrl)
+      checkPipeFile(pipe, pipeEncoding, schemaUrl)
     }
     if (bad > 0) println(s"\nSkipping $bad bad lines from pipe file. See file: $badFile")
 
@@ -95,8 +95,7 @@ class WebDoubleCheckDuplicated {
 
     // Self check
     println("\n***Self check")
-    CheckDuplicated.checkDuplicated(goodFile, "utf-8" , None, ngSchema, outDupFile1,
-      outNoDupFile1 + "_self")
+    CheckDuplicated.checkDuplicated(goodFile, "utf-8" , None, ngSchema, outDupFile1, outNoDupFile1 + "_self")
 
     // Check using DeDup service
     println("\n***Remote check")
@@ -147,8 +146,8 @@ class WebDoubleCheckDuplicated {
                           outDupFile: String): Unit = {
     val quantity = 250 // Number of documents sent to each call of DeDup service
     val src = Source.fromFile(pipeFile, "utf-8")
-    val dest = Files.newBufferedWriter(
-      Paths.get(outDupFile), Charset.forName("utf-8"), StandardOpenOption.CREATE_NEW)
+    val dest = Files.newBufferedWriter(Paths.get(outDupFile), Charset.forName("utf-8"),
+                                       StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
     var cur = 0
 
     new LineBatchIterator(src.getLines(), quantity).foreach {
@@ -195,7 +194,8 @@ class WebDoubleCheckDuplicated {
                      indexName: String,
                      schemaName: String,
                      lines: String): String = {
-println(s"@lines=[$lines]")
+//println(s"@lines=[$lines]")
+//println(s"@lines=[$lines]")
     val baseUrlTrim = baseUrl.trim
     val burl = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
     val httpClient = HttpClientBuilder.create().build()

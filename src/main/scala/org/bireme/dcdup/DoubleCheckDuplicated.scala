@@ -22,15 +22,15 @@ import br.bireme.ngrams.NGSchema
 object DoubleCheckDuplicated extends App {
   private def usage(): Unit = {
     System.err.println("usage: DoubleCheckDuplicated " +
-      "\n\t-pipeFile=<pipeFile> - DeDup piped input file" +
-      "\n\t-index=<luceneIndex> - path to Dedup's Lucene index" +
-      "\n\t-confFile=<confFile> - DeDup fields configuration file (schema)" +
+      "\n\t-pipe=<pipeFile> - DeDup piped input file" +
+      "\n\t-index=<indexPath> - DeDup index path" +
+      "\n\t-schema=<schemaFile> - DeDup schema file" +
       "\n\t-outDupFile1=<outDupFile1> - duplicated records found in pipe file" +
-      "\n\t-outDupFile2=<outDupFile2> - duplicated records found between pipe file and Dedup index" +
+      "\n\t-outDupFile2=<outDupFile2> - duplicated records found between pipe file and DeDup index" +
       "\n\t-outNoDupFile1=<outNoDupFile1> - no duplicated records between input pipe file and Dedup index" +
       "\n\t-outNoDupFile2=<outNoDupFile2> - no duplicated records between (pipe file and itself) and (pipe file and Dedup index)" +
-      "\n\t[-pipeFileEncod=<pipeFileEncoding>] - pipe file character encoding. Default is utf-8" +
-      "\n\t[-confFileEncod=<confFileEncoding>] - DeDup fields configuration file character encoding")
+      "\n\t[-schemaEncoding=<schemaFileEncoding>] - NGram schema file encoding. Default is utf-8" +
+      "\n\t[-pipeEncoding=<pipeEncoding>] - pipe file encoding. Default is utf-8")
     System.exit(1)
   }
 
@@ -43,18 +43,18 @@ object DoubleCheckDuplicated extends App {
       else map + ((split(0).substring(1), split(1)))
   }
 
-  val pipeFile: String = parameters("pipeFile")
+  val pipe: String = parameters("pipe")
   val index: String = parameters("index")
-  val confFile: String = parameters("confFile")
+  val schema: String = parameters("schema")
   val outDupFile1: String = parameters("outDupFile1")
   val outDupFile2: String = parameters("outDupFile2")
   val outNoDupFile1: String = parameters("outNoDupFile1")
   val outNoDupFile2: String = parameters("outNoDupFile2")
-  val pipeFileEncod: String = parameters.getOrElse("pipeFileEncod", "utf-8")
-  val confFileEncod: String = parameters.getOrElse("confFileEncod", "utf-8")
+  val pipeEncoding: String = parameters.getOrElse("pipeEncoding", "utf-8")
+  val schemaEncoding: String = parameters.getOrElse("schemaEncoding", "utf-8")
   val begin: Long = Calendar.getInstance.getTimeInMillis
 
-  doubleCheck(pipeFile, pipeFileEncod, index, confFile, confFileEncod,
+  doubleCheck(pipe, pipeEncoding, index, schema, schemaEncoding,
               outDupFile1, outDupFile2, outNoDupFile1, outNoDupFile2)
 
   println(s"\nElapsed time: ${(Calendar.getInstance.getTimeInMillis - begin) / 1000}s")
@@ -63,42 +63,42 @@ object DoubleCheckDuplicated extends App {
     * documents and then against a DeDup index (usually LILACS) to also
     * look for duplicated ones.
     *
-    * @param pipeFile DeDup piped input file
-    * @param pipeFileEncoding pipe file character encoding
+    * @param pipe DeDup piped input file
+    * @param pipeEncoding pipe file character encoding
     * @param luceneIndex path to Dedup's Lucene index
-    * @param confFile DeDup fields configuration file (schema)
-    * @param confFileEncoding DeDup fields configuration file character encoding
+    * @param schema DeDup fields configuration file (schema)
+    * @param schemaEncoding DeDup fields configuration file character encoding
     * @param outDupFile1 duplicated records found in pipe file
-    * @param outDupFile2  duplicated records found between pipe file and Dedup index
+    * @param outDupFile2  duplicated records found between pipe file and Dedupa index
     * @param outNoDupFile1 no duplicated records between input pipe file and Dedup index
     * @param outNoDupFile2 no duplicated records between (pipe file and itself) and (pipe file and Dedup index)
     */
-  def doubleCheck(pipeFile: String,
-                  pipeFileEncoding: String,
+  def doubleCheck(pipe: String,
+                  pipeEncoding: String,
                   luceneIndex: String,
-                  confFile: String,
-                  confFileEncoding: String,
+                  schema: String,
+                  schemaEncoding: String,
                   outDupFile1: String,
                   outDupFile2: String,
                   outNoDupFile1: String,
                   outNoDupFile2: String): Unit = {
-    val ngSchema: NGSchema = new NGSchema(confFile, confFile, confFileEncoding)
+    val ngSchema: NGSchema = new NGSchema(schema, schema, schemaEncoding)
 
     // Verifying pipe file integrity
     println("\nVerifying pipe file integrity")
     val goodFileName = File.createTempFile("good", "").getPath
     val badFileName = File.createTempFile("bad", "").getPath
-    val (good,bad) = VerifyPipeFile.checkLocal(pipeFile, pipeFileEncoding,
-      confFile, goodFileName, badFileName, confFileEncoding)
+    val (good,bad) = VerifyPipeFile.checkLocal(pipe, pipeEncoding,
+      schema, goodFileName, badFileName, schemaEncoding)
     println(s"Using $good documents")
     if (bad > 0) println(s"Skipping $bad documents. See file: $badFileName\n")
 
     // Self check
-    CheckDuplicated.checkDuplicated(goodFileName, pipeFileEncoding , None, ngSchema, outDupFile1, outNoDupFile1 + "_self",
+    CheckDuplicated.checkDuplicated(goodFileName, pipeEncoding , None, ngSchema, outDupFile1, outNoDupFile1 + "_self",
       selfCheck = true)
 
     // Check using given Lucene indexPath
-    CheckDuplicated.checkDuplicated(goodFileName, pipeFileEncoding , Some(luceneIndex), ngSchema, outDupFile2, outNoDupFile1)
+    CheckDuplicated.checkDuplicated(goodFileName, pipeEncoding , Some(luceneIndex), ngSchema, outDupFile2, outNoDupFile1)
 
     // Take duplicate no duplicated documents between (pipe file and itself) and (pipe file and Dedup index)
     CheckDuplicated.takeNoDuplicated(ngSchema, outNoDupFile1 + "_self" , outNoDupFile1, outNoDupFile2)

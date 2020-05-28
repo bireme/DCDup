@@ -12,8 +12,8 @@ if [ "$#" -lt "5" ]
     echo '   -dedupUrl=<DeDupBaseUrl> - DeDup url service  (for ex: http://dedup.bireme.org/services)'
     echo '   -index=<indexPath> - DeDup index name'
     echo '   -schema=<schemaFile> - DeDup schema name'
-    echo '   -pipe=<pipeFile> - pipe file'
-    echo '   -pipeEncoding=<pipeEncoding> - pipe file encoding'
+    echo '   -pipe=<pipeFile> - DeDup piped input file'
+    echo '   -pipeEncoding=<pipeEncoding> - DeDup pipe file encoding'
     echo
     echo '   [--append] - append documents to an existing DeDup index'
     exit 1

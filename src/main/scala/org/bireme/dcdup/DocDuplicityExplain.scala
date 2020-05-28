@@ -29,10 +29,10 @@ object DocDuplicityExplain extends App {
   private def usage(): Unit = {
     System.err.println("usage: DocDuplicityExplain")
     System.err.println("\t\t-index=<indexPath> - Lucene index name/path")
-    System.err.println("\t\t-conf=<confFile> - xml configuration/schema file")
+    System.err.println("\t\t-schema=<schemaFile> - DeDup schema file")
     System.err.println("\t\t-id=<indexDocId> - id of the indexed document to compare")
     System.err.println("\t\t-doc=<pipeInputDocument> - input piped document to compare")
-    System.err.println("\t\t[-encod=<confFileEncoding>] - xml configuration/schema file encoding")
+    System.err.println("\t\t[-schemaEncoding=<schemaFileEncoding>] - DeDup schema file encoding. Default is utf-8")
     System.exit(1)
   }
 
@@ -56,11 +56,11 @@ object DocDuplicityExplain extends App {
   if (parameters.size < 4) usage()
 
   val index = parameters("index")
-  val conf = parameters("conf")
+  val schema = parameters("schema")
   val id = parameters("id")
   val doc = parameters("doc")
-  val encod = parameters.getOrElse("encod", "utf-8")
-  val expl = explain(index, conf, encod, id, doc)
+  val schemaEncoding = parameters.getOrElse("schemaEncoding", "utf-8")
+  val expl = explain(index, schema, schemaEncoding, id, doc)
 
   println(expl)
 
