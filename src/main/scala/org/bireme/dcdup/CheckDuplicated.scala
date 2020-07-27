@@ -61,7 +61,7 @@ object CheckDuplicated {
 
     // Retrieve a map of repeated ids.
     print("Post processing duplicated files ... ")
-    val dupIds: Map[String, Set[String]] = postProcessDup(outDupFile + "_tmp", outDupFile)
+    val dupIds: Map[String, Set[String]] = postProcessDup(outDupFile + "_tmp", outDupFile, ngSchema)
 
     // Remove repeatable documents
     print("OK\nPost processing no duplicated files... ")
@@ -235,10 +235,12 @@ object CheckDuplicated {
   /** Create an output file where the duplicated ids from input file are removed
     * @param outDupFileIn output file to remove duplicates
     * @param outDupFileOut output file with duplicates removed after post processing
+    * @param ngSchema DeDup data schema name. See http://dedup.bireme.org/services/schemas
     * @return the map of repetitive ids: (id -> (id, id, ..., id))
     */
   def postProcessDup(outDupFileIn: String,
-                     outDupFileOut: String): Map[String, Set[String]] = {
+                     outDupFileOut: String,
+                     ngSchema: NGSchema): Map[String, Set[String]] = {
     val ids: mutable.Map[String, Set[String]] = mutable.Map[String, Set[String]]()
     val out: BufferedWriter = Files.newBufferedWriter(Paths.get(outDupFileOut), Charset.forName("utf-8"))
     val in: BufferedSource = Source.fromFile(outDupFileIn, "utf-8")
@@ -247,10 +249,14 @@ object CheckDuplicated {
       line =>
         val linet: String = line.trim
         if (linet.nonEmpty) {
-          val split: Array[String] = linet.split(" *\\| *", 8)  // ranking|similarity|id1|id2|tit1|tit2|db1|db2
-          if (split.length == 8) {
-            val id1x: String = getId(2, 6,8, linet) //id1db1
-            val id2x: String = getId(3, 7,8, linet) //id2db2
+          val idPos: Integer = 4 * ngSchema.getNamesPos.get("id")
+          val dbPos: Integer = 4 * ngSchema.getNamesPos.get("database")
+          val elemNum: Int = 4 * ngSchema.getNamesPos.size()
+
+          val split: Array[String] = linet.split(" *\\| *", elemNum)
+          if (split.length == elemNum) {
+            val id1x: String = getId(idPos, dbPos,elemNum, linet) //id1db1
+            val id2x: String = getId(idPos + 1, dbPos + 1, elemNum, linet) //id2db2
             val (id1, id2) = if (id1x.compareTo(id2x) <= 0) (id1x, id2x) else (id2x, id1x)
 
             if (!id1.equals(id2)) {

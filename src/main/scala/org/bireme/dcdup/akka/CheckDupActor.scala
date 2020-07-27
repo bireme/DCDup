@@ -28,7 +28,7 @@ class CheckDupActor(ngIndex: NGIndex,
   // Create objects required to check documents
   val analyzer: NGAnalyzer = ngIndex.getAnalyzer.asInstanceOf[NGAnalyzer]
   val parameters: Parameters = ngSchema.getParameters
-  val results: util.HashSet[NGrams.Result] = new java.util.HashSet[NGrams.Result]()
+  val results: util.List[NGrams.Result] = new java.util.ArrayList[NGrams.Result]()
   val searcher: IndexSearcher = ngIndex.getIndexSearcher
   val size: Int = ngSchema.getNamesPos.size
   val ngDistance: NGramDistance = new NGramDistance(analyzer.getNgramSize)
@@ -45,7 +45,8 @@ class CheckDupActor(ngIndex: NGIndex,
         if (results.isEmpty) Set[String]()
         else {
           //println(s"size=${id_id.size} $self.path.name] line[$doc]")
-          NGrams.results2pipe(parameters, results).asScala.toSet
+          //NGrams.result2PipeReport(parameters, results).asScala.toSet
+          NGrams.result2PipeReport(parameters, results).asScala.toSet
         }
       } match {
         case Success(resSet) =>

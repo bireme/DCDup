@@ -49,7 +49,8 @@ object CheckPipeFile extends App {
       "\n\t)" +
       "\n\t-good=<file path> - file that contains piped lines following the schema" +
       "\n\t-bad=<file path> - file that contains piped lines that does not follow the schema" +
-      "\n\t[-pipeEncoding=<encoding>] - piped file encoding. Default is utf-8"
+      "\n\t[-pipeEncoding=<encoding>] - piped file encoding. Default is utf-8" +
+      "\n\t[-schemaEncoding=<schemaFileEncoding>] - NGram schema file encoding. Default is utf-8"
     )
     System.exit(1)
   }
@@ -66,12 +67,16 @@ object CheckPipeFile extends App {
         map
       }
   }
+  val keys = parameters.keys.toSet
+  if (!Set("pipe", "schema", "good", "bad").forall(keys.contains)) usage()
 
   val pipe = parameters("pipe")
   val encoding = parameters.getOrElse("pipeEncoding", "utf-8").trim
   val encoding2 = if (encoding.isEmpty) "utf-8" else encoding
   val dedupUrl = parameters.get("dedupUrl")
   val schema = parameters.get("schema")
+  val schemaEncoding = parameters.getOrElse("schemaEncoding", "utf-8").trim
+  val schemaEncoding2 = if (schemaEncoding.isEmpty) "utf-8" else schemaEncoding
   val good = parameters("good")
   val bad = parameters("bad")
 
@@ -88,7 +93,7 @@ object CheckPipeFile extends App {
         }
       case None =>
         schema match {
-          case Some(spath) => VerifyPipeFile.checkLocal(pipe, encoding2, spath, good, bad)
+          case Some(spath) => VerifyPipeFile.checkLocal(pipe, encoding2, spath, good, bad, schemaEncoding2)
           case None => new IllegalArgumentException("use 'dedupUrl + schema' or 'schemaPath'")
         }
     }
@@ -495,7 +500,7 @@ object VerifyPipeFile {
       case (tot, fld) => if (fld.trim.nonEmpty) tot + 1 else tot
     }
 
-    if ((nonEmptyFields - 3) < check.minFields) Some(s"number of fields are less than ${check.minFields}")
+    if ((nonEmptyFields - 2) < check.minFields) Some(s"number of fields are less than ${check.minFields}")
     else if (fields(check.idFieldPos).isEmpty) Some("missing id field")
     else if (fields(check.dbFieldPos).isEmpty) Some("missing database field")
     else check.otherFields.foldLeft[Option[String]](None) { // Check each other field condition

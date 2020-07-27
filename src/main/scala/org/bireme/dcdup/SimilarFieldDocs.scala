@@ -60,6 +60,8 @@ object SimilarFieldDocs extends App {
         }
       }
   }
+  val keys = parameters.keys.toSet
+  if (!Set("fieldText", "index", "fieldName").forall(keys.contains)) usage()
 
   if (parameters.size < 3) usage()
 

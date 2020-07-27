@@ -36,6 +36,8 @@ object TestIndex extends App {
       if (split.length == 1) map + ((split(0).substring(2), ""))
       else map + ((split(0).substring(1), split(1)))
   }
+  val keys = parameters.keys.toSet
+  if (!Set("index", "schema").forall(keys.contains)) usage()
 
   val index = parameters("index")
   val schema = parameters("schema")

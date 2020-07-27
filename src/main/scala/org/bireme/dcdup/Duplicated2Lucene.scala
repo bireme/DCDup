@@ -39,6 +39,8 @@ object Duplicated2Lucene extends App {
       if (split.length == 1) map + ((split(0).substring(2), ""))
       else map + ((split(0).substring(1), split(1)))
   }
+  val keys = parameters.keys.toSet
+  if (!Set("pipeFile", "dupFile", "indexPath", "schema").forall(keys.contains)) usage()
 
   val pipeFile = parameters("pipeFile")
   val dupFile = parameters("dupFile")
@@ -73,7 +75,7 @@ object Duplicated2Lucene extends App {
     val decoder = codec.decoder.onMalformedInput(codAction)
     val dsrc = Source.fromFile(dupFile)(decoder)
 
-    val set = dsrc.getLines.foldLeft[Set[Int]](Set()) {
+    val set = dsrc.getLines().foldLeft[Set[Int]](Set()) {
       case (set1,line) =>
         val tline = line.trim()
         if (!tline.isEmpty) {

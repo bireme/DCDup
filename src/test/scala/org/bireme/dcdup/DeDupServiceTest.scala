@@ -32,7 +32,6 @@ import org.scalatest.matchers.should.Matchers
 import Matchers._
 import scalaj.http.{Http, HttpOptions, HttpRequest}
 
-import scala.io._
 import scala.util.matching.Regex
 
 /** Application which uses ScalaTest to check each function from DeDup Service
@@ -71,7 +70,7 @@ class DeDupServiceTest extends AnyFlatSpec {
 
     title.findFirstMatchIn(content) match {
       case Some(mat) => mat.group(1) should be ("DeDup - Finding duplicated records")
-      case None => fail
+      case None => fail()
     }
   }
 

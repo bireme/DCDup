@@ -47,6 +47,8 @@ object Search extends App {
         map
       }
   }
+  val keys = parameters.keys.toSet
+  if (!Set("index", "expr", "defField").forall(keys.contains)) usage()
 
   val index: String = parameters("index")
   val expr: String = parameters("expr")

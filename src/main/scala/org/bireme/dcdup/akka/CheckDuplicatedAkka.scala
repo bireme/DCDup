@@ -78,7 +78,7 @@ object CheckDuplicatedAkka {
     //println("CheckDuplicatedAkka is finishing")
 
     // Stop threads and clean resources
-    _system.terminate
+    _system.terminate()
   }
 }
 

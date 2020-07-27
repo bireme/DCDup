@@ -49,6 +49,10 @@ object WebDoubleCheckDuplicated extends App {
       if (split.length == 1) map + ((split(0).substring(2), ""))
       else map + ((split(0).substring(1), split(1)))
   }
+  val keys = parameters.keys.toSet
+  if (!Set("pipe", "dedupUrl", "index", "schema", "outDupFile1", "outDupFile2", "outNoDupFile1", "outNoDupFile2")
+    .forall(keys.contains)) usage()
+
   val pipe = parameters("pipe")
   val dedupUrl = parameters("dedupUrl")
   val index = parameters("index")
@@ -103,7 +107,7 @@ class WebDoubleCheckDuplicated {
 
     print("OK\nPost processing remote duplicated files ... ")
     val dupIds: Map[String, Set[String]] =
-      CheckDuplicated.postProcessDup(outDupFile2 + "_tmp", outDupFile2)
+      CheckDuplicated.postProcessDup(outDupFile2 + "_tmp", outDupFile2, ngSchema)
 
     print("OK\n\nPost processing no duplicated remote files ... ")
     val idsDup: Set[String] = dupIds.foldLeft(Set[String]()) ((set, kv) => set ++ (kv._2 + kv._1))

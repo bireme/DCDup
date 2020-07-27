@@ -61,6 +61,8 @@ object MySQL2Pipe extends App {
         map
       }
   }
+  val keys = parameters.keys.toSet
+  if (!Set("host", "user", "pswd", "dbnm", "sqls", "pipe").forall(keys.contains)) usage()
 
   val host = parameters("host")
   val user = parameters("user")

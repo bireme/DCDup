@@ -30,6 +30,7 @@ object Pipe2Lucene extends App {
     )
     System.exit(1)
   }
+
   val seq = args.toSeq.filter(_.nonEmpty)
   if (seq.length < 3) usage()
 
@@ -39,6 +40,8 @@ object Pipe2Lucene extends App {
       if (split.length == 1) map + ((split(0).substring(2), ""))
       else map + ((split(0).substring(1), split(1)))
   }
+  val keys = parameters.keys.toSet
+  if (!Set("index", "schema", "pipe").forall(keys.contains)) usage()
 
   val index = parameters("index")
   val schema = parameters("schema")
@@ -77,7 +80,7 @@ class Pipe2Lucene {
     val schema = new NGSchema("schema", schemaFile, schemaEncoding)
     val reader = Source.fromFile(goodFileName, "utf-8")
 
-    reader.getLines.zipWithIndex.foreach {
+    reader.getLines().zipWithIndex.foreach {
       case (line,idx) =>
         if (idx % 10000 == 0) println(s"+++$idx")
         try {

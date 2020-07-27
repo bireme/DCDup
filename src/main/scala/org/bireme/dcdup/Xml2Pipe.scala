@@ -42,6 +42,8 @@ object Xml2Pipe extends App {
         map
       }
   }
+  val keys = parameters.keys.toSet
+  if (!Set("dir", "inPattern", "outDir", "conv").forall(keys.contains)) usage()
 
   val repSeparator: String = "//@//"  // Separator string of repetitive field
   val dir: String = parameters("dir")
@@ -67,7 +69,7 @@ object Xml2Pipe extends App {
   private def parseConvFile1(convFile: String): Map[String, String] = {
     val src = Source.fromFile(convFile, "utf-8")
 
-    val map: Map[String, String] = src.getLines.foldLeft(Map[String, String]()) {
+    val map: Map[String, String] = src.getLines().foldLeft(Map[String, String]()) {
       case (map1, line) =>
         val split = line.trim.split(" *\\| *", 2)
         if (split.length > 1) map1 + (split(0) -> split(1))
@@ -86,7 +88,7 @@ object Xml2Pipe extends App {
   private def parseConvFile2(convFile: String): Map[String, Int] = {
     val src = Source.fromFile(convFile, "utf-8")
 
-    val map: Map[String, Int] = src.getLines.foldLeft(Map[String, Int]()) {
+    val map: Map[String, Int] = src.getLines().foldLeft(Map[String, Int]()) {
       case (map1, line) =>
         val split = line.trim.split(" *\\| *", 2)
         if (split.length > 1) map1 + (split(0) -> split(1).toInt)

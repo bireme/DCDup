@@ -28,9 +28,9 @@ class ReadDupActor(file: File,
 
     case AskByDoc =>
       if (lines.hasNext) {
-        sender ! lines.next()
+        sender() ! lines.next()
       } else {
-        sender ! Finish
+        sender() ! Finish
         finished += 1
         if (finished == numOfCheckers) writeDup ! Finish
       }

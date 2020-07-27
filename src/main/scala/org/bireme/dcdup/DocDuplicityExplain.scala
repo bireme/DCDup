@@ -52,6 +52,8 @@ object DocDuplicityExplain extends App {
         }
       }
   }
+  val keys = parameters.keys.toSet
+  if (!Set("index", "schema", "id", "doc").forall(keys.contains)) usage()
 
   if (parameters.size < 4) usage()
 
@@ -109,13 +111,13 @@ object DocDuplicityExplain extends App {
     //val fields: Map[Int, Field] = params.getSearchFields.asScala.map[Int,Field](kv => (kv._1.toInt, kv._2)).toMap //scala 2.13.0
     val fields: Map[Int, Field] = params.getSearchFields.asScala.map(kv => (kv._1.toInt, kv._2)).toMap
     //val fields2: java.util.Map[String, Field] = params.getNameFields
-    val results: Seq[(Int,Int)] = fields.foldLeft(Seq[(Int,Int)]()) {
-      case (seq, fld: (Int, Field)) =>
-        val check: Int = NGrams.checkField(ngDistance, fld._2, doc, doc2)
-        seq :+ ((fld._1, check))
-    }
     val idxFldPos: Int = params.getIndexedPos
     val similarity: Float = getSimilarity(doc, idxFldPos, doc2, fields(idxFldPos).name, ngDistance)
+    val results: Seq[(Int, CheckFieldResult)] = fields.foldLeft(Seq[(Int, CheckFieldResult)]()) {
+      case (seq, fld: (Int, Field)) =>
+        val check: CheckFieldResult = NGrams.checkField(similarity, ngDistance, fld._2, doc, doc2)
+        seq :+ ((fld._1, check))
+    }
 
     createReport(params, similarity, results, fields, doc, doc2)
   }
@@ -145,7 +147,7 @@ object DocDuplicityExplain extends App {
   * Create an output report explaining why the two documents are duplicated or not
     * @param parameters the representation of the index schema file
     * @param similarity number indication how much two document are similar
-    * @param results the result of comparing the two document fields (field position, fld check result:(-2,-1,0,1))
+    * @param results the result of comparing the two document fields (field position, fld check result)
     * @param fields the (position, field) composition of the documents
     * @param doc1 input piped document
     * @param doc2 indexed document
@@ -153,16 +155,16 @@ object DocDuplicityExplain extends App {
     */
   private def createReport(parameters: Parameters,
                            similarity: Float,
-                           results: Seq[(Int,Int)],
+                           results: Seq[(Int,CheckFieldResult)],
                            fields: Map[Int, Field],
                            doc1: Array[String],
                            doc2: Document): String = {
     val builder: StringBuilder =  new StringBuilder()
-    val sortedResult: Seq[(Int,Int)] = results.sortWith((res1, res2) => res1._1 <= res2._1)
+    //val sortedResult: Seq[(Int,CheckFieldResult)] = results.sortWith((res1, res2) => res1._1 <= res2._1)
 
     getDocs(doc1, doc2, fields, builder)
-
-    val (matchedFields: Int, maxScore: Boolean) = sortedResult.foldLeft[(Int, Boolean)](0, false) {
+// REFAZER ERROR !!!!
+  /*  val (matchedFields: Int, maxScore: Boolean) = sortedResult.foldLeft[(Int, Boolean)](0, false) {
       case ((tot, bool), (pos, result)) =>
         result match {
           case -1 =>
@@ -179,6 +181,9 @@ object DocDuplicityExplain extends App {
             (tot + 1, bool)
         }
     }
+*/
+  val (matchedFields: Int, maxScore: Boolean) = (0,false)
+
     builder.append(s"\n\nSimilarity = $similarity")
     builder.append(s"\nRequired_max_similarity = $maxScore\nTotal_fields = ${results.size}\nMatched_fields = $matchedFields")
 
