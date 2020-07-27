@@ -1,6 +1,6 @@
 #!/bin/bash
 
-JAVA_HOME=/usr/local/oracle-8-jdk
+JAVA_HOME=/usr/local/java11
 PATH=$JAVA_HOME/bin:$PATH
 
 if [ "$#" -lt "3" ]
