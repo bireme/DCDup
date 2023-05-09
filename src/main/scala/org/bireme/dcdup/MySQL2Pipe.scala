@@ -42,7 +42,7 @@ object MySQL2Pipe extends App {
       "\n\t[-repetitiveSep=<separator>] - repetitive field string separator. Default is //@//" +
       "\n\t[-jsonLangField=<jsonLangField>] - the json field that store the language indicator. If present it will be " +
         "used to suffix the id field with the language" +  // _i
-      "\n\t[-idFieldName=<name>] - id field name of the mysql record]. Will be used to preffix the id with the language " +
+      "\n\t[-idFieldName=<name>] - id field name of the mysql record]. Will be used to prefix the id with the language " +
         "if the jsonLangField is specified"
     )
     System.exit(1)

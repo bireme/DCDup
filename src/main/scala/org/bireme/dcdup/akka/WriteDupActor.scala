@@ -24,7 +24,7 @@ class WriteDupActor(goodUrlFile: File) extends Actor {
     case lines: Set[String] =>
       lines.foreach {
         line: String =>
-          if (!line.isEmpty) {
+          if (line.nonEmpty) {
             dupWriter.write(line)
             dupWriter.newLine()
           }

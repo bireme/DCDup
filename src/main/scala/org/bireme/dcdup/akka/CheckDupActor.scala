@@ -51,9 +51,9 @@ class CheckDupActor(ngIndex: NGIndex,
       } match {
         case Success(resSet) =>
           if (resSet.nonEmpty) writer ! resSet
-        case Failure(ex) =>
+        case Failure(_) =>
           println(s"Line with error:[$ttext]")
-          ex.printStackTrace()//System.err.println(ex)
+          //ex.printStackTrace()//System.err.println(ex)
       }
       teller ! PRINT
       reader ! AskByDoc

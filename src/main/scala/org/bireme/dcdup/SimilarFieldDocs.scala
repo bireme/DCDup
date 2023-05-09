@@ -10,16 +10,15 @@ package org.bireme.dcdup
 import java.io.{BufferedWriter, File, OutputStreamWriter}
 import java.nio.charset.Charset
 import java.nio.file.Files
-
 import br.bireme.ngrams.{NGAnalyzer, NGrams}
 import org.apache.lucene.document.Document
-import org.apache.lucene.index.{DirectoryReader, IndexableField, MultiBits}
+import org.apache.lucene.index.{DirectoryReader, IndexableField, MultiBits, MultiFields}
 import org.apache.lucene.search.spell.NGramDistance
 import org.apache.lucene.store.FSDirectory
 import org.apache.lucene.util.Bits
 
 import scala.collection.immutable.TreeMap
-import scala.jdk.CollectionConverters._    //scala 2.13.0
+import scala.jdk.CollectionConverters._
 import scala.math.Ordering.Float.TotalOrdering  //scala 2.13.0
 //import scala.collection.JavaConverters._
 
@@ -118,11 +117,11 @@ object SimilarFieldDocs extends App {
             val aux: String = doc.get("id" + "~notnormalized")
             if (aux == null) "" else aux
           }
-          if (!field.isEmpty && !did.isEmpty) writer.write(s"$sim|$did|$field\n")
+          if (field.nonEmpty && did.nonEmpty) writer.write(s"$sim|$did|$field\n")
       }
     }
     val simDocs: String = getSimDocs(reader, simTree, simDocsNum)
-    if (!simDocs.isEmpty) writer.write(s"\n\n$simDocs")
+    if (simDocs.nonEmpty) writer.write(s"\n\n$simDocs")
 
     reader.close()
     iterator.close()
@@ -246,7 +245,7 @@ object SimilarFieldDocs extends App {
   */
 class DocumentIterator(indexPath: String) extends Iterator[(Int, Document)] {
   val reader: DirectoryReader = DirectoryReader.open(FSDirectory.open(new File(indexPath).toPath))
-  //val liveDocs: Bits = MultiFields.getLiveDocs(reader) Lucene version before 8.0.0
+  //val liveDocs: Bits = MultiFields.getLiveDocs(reader) // Lucene version before 8.0.0
   val liveDocs: Bits = MultiBits.getLiveDocs(reader) // Lucene version 8.0.0
   val max: Int = reader.maxDoc()
   var cur: Int = 0

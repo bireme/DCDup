@@ -198,12 +198,12 @@ object CheckDuplicated {
     * @param outDupFile output piped file with the similar documents
     * @param selfCheck if true indicates that are a duplicated check from input file against itself
     */
-  private def check(ngIndex: NGIndex,
-                    ngSchema: NGSchema,
-                    pipeFile: String,
-                    pipeFileEncoding: String,
-                    outDupFile: String,
-                    selfCheck: Boolean): Unit = {
+  def check(ngIndex: NGIndex,
+            ngSchema: NGSchema,
+            pipeFile: String,
+            pipeFileEncoding: String,
+            outDupFile: String,
+            selfCheck: Boolean): Unit = {
     //NGrams.search(ngIndex, ngSchema, pipeFile, pipeFileEncoding, outDupFile, "utf-8")
 
     val numberOfCheckers: Int = Runtime.getRuntime.availableProcessors()
@@ -219,10 +219,10 @@ object CheckDuplicated {
     * @param time time string used as a suffix of the index name
     * @return the index's path
     */
-  private def createTmpIndex(pipeFile: String,
-                             pipeFileEncoding: String,
-                             ngSchema: NGSchema,
-                             time: String): String = {
+  def createTmpIndex(pipeFile: String,
+                     pipeFileEncoding: String,
+                     ngSchema: NGSchema,
+                     time: String): String = {
     val indexPath: String = s"/tmp/DCDup_$time"
     val ngIndex: NGIndex = new NGIndex(indexPath, indexPath, false)
 

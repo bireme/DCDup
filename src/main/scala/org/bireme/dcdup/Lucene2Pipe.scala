@@ -10,14 +10,12 @@ package org.bireme.dcdup
 import java.io.Writer
 import java.nio.charset.Charset
 import java.nio.file.{Files, Paths}
-
 import br.bireme.ngrams.NGSchema
 import org.apache.lucene.document.Document
-import org.apache.lucene.index.{DirectoryReader, MultiBits}
+import org.apache.lucene.index.{DirectoryReader, MultiBits, MultiFields}
 import org.apache.lucene.store.FSDirectory
 
 import scala.jdk.CollectionConverters._ //scala 2.13.0
-//import scala.collection.JavaConverters._
 
 /**
   * Generate a pipe file with the documents stored in a Lucene index
@@ -73,7 +71,7 @@ object Lucene2Pipe extends App {
                                       Charset.forName(pipeEncoding))
     val directory = FSDirectory.open(Paths.get(indexPath))
     val reader = DirectoryReader.open(directory)
-    //val liveDocs = MultiFields.getLiveDocs(reader) Lucene version before 8.0.0
+    //val liveDocs = MultiFields.getLiveDocs(reader)  // Lucene version before 8.0.0
     val liveDocs = MultiBits.getLiveDocs(reader)  // Lucene version 8.0.0
 
     (0 until reader.maxDoc()).foreach {

@@ -280,7 +280,8 @@ object DocDuplicityExplain extends App {
     val query = new TermQuery(new Term("id", idn))
 
     val topDocs = searcher.search(query, 1)
-    if (topDocs.totalHits.value == 0) None
+    //if (topDocs.totalHits.value == 0) None  // for newer Lucene version
+    if (topDocs.totalHits == 0) None
     else Some(searcher.doc(topDocs.scoreDocs.head.doc))
   }
 }
