@@ -16,7 +16,7 @@ fi
 
 cd /home/javaapps/sbt-projects/DCDup || exit
 
-java -cp target/scala-2.13/DCDup-assembly-0.1.0.jar org.bireme.dcdup.SelfCheckDuplicated $1 $2 $3 $4 $5 $6 $7
-#sbt "runMain org.bireme.dcdup.SelfCheckDuplicated $1 $2 $3 $4 $5 $6 $7"
+java -cp jar/DCDup-assembly-0.1.0.jar org.bireme.dcdup.SelfCheckDuplicated $1 $2 $3 $4 $5 $6 $7
 
 cd - || exit
+
