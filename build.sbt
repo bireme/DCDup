@@ -12,7 +12,7 @@ lazy val root = (project in file(".")).
 
 val commonsLangVersion = "3.12.0" //"3.11"
 val commonsTextVersion = "1.10.0" //"1.8"
-val luceneVersion = /*"9.5.0" "6.0.0" "8.6.0" */ "8.5.1"
+val luceneVersion = "9.7.0" /*"9.5.0" "6.0.0" "8.6.0" */ /*"8.5.1"*/
 //val jacksonVersion = /*"2.9.9.3"*/ "2.9.9"
 val httpClientVersion = "4.5.14" //"4.5.12"
 val scalajHttpVersion = "2.4.2" //"2.4.1"
@@ -28,8 +28,8 @@ val googlePatchVersion = "20121119" //"895a9512bb"
 libraryDependencies ++= Seq(
   "org.apache.commons" % "commons-lang3" % commonsLangVersion,
   "org.apache.commons" % "commons-text" % commonsTextVersion,
-  "org.apache.lucene" % "lucene-analyzers-common" % luceneVersion,
-  //"org.apache.lucene" % "lucene-analysis-common" % luceneVersion,
+  //"org.apache.lucene" % "lucene-analyzers-common" % luceneVersion,
+  "org.apache.lucene" % "lucene-analysis-common" % luceneVersion,
   "org.apache.lucene" % "lucene-core" % luceneVersion,
   "org.apache.lucene" % "lucene-queryparser" % luceneVersion,
   "org.apache.lucene" % "lucene-suggest" % luceneVersion,

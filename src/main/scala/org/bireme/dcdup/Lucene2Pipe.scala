@@ -12,7 +12,7 @@ import java.nio.charset.Charset
 import java.nio.file.{Files, Paths}
 import br.bireme.ngrams.NGSchema
 import org.apache.lucene.document.Document
-import org.apache.lucene.index.{DirectoryReader, MultiBits, MultiFields}
+import org.apache.lucene.index.{DirectoryReader, MultiBits}
 import org.apache.lucene.store.FSDirectory
 
 import scala.jdk.CollectionConverters._ //scala 2.13.0

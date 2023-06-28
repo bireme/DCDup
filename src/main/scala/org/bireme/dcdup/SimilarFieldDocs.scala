@@ -12,7 +12,7 @@ import java.nio.charset.Charset
 import java.nio.file.Files
 import br.bireme.ngrams.{NGAnalyzer, NGrams}
 import org.apache.lucene.document.Document
-import org.apache.lucene.index.{DirectoryReader, IndexableField, MultiBits, MultiFields}
+import org.apache.lucene.index.{DirectoryReader, IndexableField, MultiBits}
 import org.apache.lucene.search.spell.NGramDistance
 import org.apache.lucene.store.FSDirectory
 import org.apache.lucene.util.Bits
@@ -64,13 +64,13 @@ object SimilarFieldDocs extends App {
 
   if (parameters.size < 3) usage()
 
-  val fieldText: String = parameters("fieldText")
-  val index: String = parameters("index")
-  val fieldName: String = parameters("fieldName")
-  val outFile: Option[String] = parameters.get("outFile")
-  val outSize: Int = parameters.getOrElse("outSize", "10").toInt
-  val simDocsNum: Int = parameters.getOrElse("simDocsNum", "0").toInt
-  val notNormalize: Boolean = parameters.getOrElse("notNormalize", "false").toBoolean
+  private val fieldText: String = parameters("fieldText")
+  private val index: String = parameters("index")
+  private val fieldName: String = parameters("fieldName")
+  private val outFile: Option[String] = parameters.get("outFile")
+  private val outSize: Int = parameters.getOrElse("outSize", "10").toInt
+  private val simDocsNum: Int = parameters.getOrElse("simDocsNum", "0").toInt
+  private val notNormalize: Boolean = parameters.getOrElse("notNormalize", "false").toBoolean
 
   findSimilars(fieldText, index, fieldName, outFile, notNormalize)
 
