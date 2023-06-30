@@ -57,7 +57,7 @@ object TestIndex extends App {
 
     val bad = (0 until ireader.maxDoc) exists {
       id =>
-        val doc = ireader.document(id)
+        val doc = ireader.storedFields().document(id)
         val bad = badDocument(doc, fields)
 
         if (id % 100000 == 0) println(s"+++ $id")
@@ -82,6 +82,6 @@ object TestIndex extends App {
     val recFieldContent = doc.get(reqFieldName)
 
     (reqFieldName == null) || reqFieldName.isEmpty ||
-    ((recFieldContent != null) && (!recFieldContent.isEmpty))
+    ((recFieldContent != null) && recFieldContent.nonEmpty)
   }
 }

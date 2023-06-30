@@ -5,7 +5,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val root = (project in file(".")).
-  settings(commonSettings: _*).
+  settings(commonSettings *).
   settings(
     name := "DCDup"
   )
@@ -16,11 +16,11 @@ val luceneVersion = "9.7.0" /*"9.5.0" "6.0.0" "8.6.0" */ /*"8.5.1"*/
 //val jacksonVersion = /*"2.9.9.3"*/ "2.9.9"
 val httpClientVersion = "4.5.14" //"4.5.12"
 val scalajHttpVersion = "2.4.2" //"2.4.1"
-val mySQLVersion = "8.0.32" //"8.0.21"
-val logBackVersion = "1.4.5" //"1.2.3"
-val circeVersion = "0.14.4" //"0.13.0"
+val mySQLVersion = "8.0.33" //"8.0.21"
+val logBackVersion = "1.4.7" //"1.2.3"
+val circeVersion = "0.14.5" //"0.13.0"
 val scalaTestVersion = "3.2.15" //"3.2.0"
-val akkaVersion = "2.7.0" //"2.6.8"
+val akkaVersion = "2.8.0" //"2.7.0" //"2.6.8"
 val xerces2Version = "2.12.2" //"2.12.0"
 val stringDistanceVersion = "1.2.7" //"1.2.3"
 val googlePatchVersion = "20121119" //"895a9512bb"

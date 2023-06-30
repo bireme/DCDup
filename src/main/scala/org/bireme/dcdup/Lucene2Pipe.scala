@@ -78,7 +78,7 @@ object Lucene2Pipe extends App {
     //(0 until 1).foreach {
       id =>
         if ((liveDocs == null) || liveDocs.get(id))
-          exportDoc(reader.document(id), fields, out)
+          exportDoc(reader.storedFields().document(id), fields, out)
         if (id % 100000 == 0) println(s"+++$id")
     }
 

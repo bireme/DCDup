@@ -36,7 +36,7 @@ object DocDuplicityExplain extends App {
     System.exit(1)
   }
 
-  val parameters = args.foldLeft[Map[String, String]](Map()) {
+  private val parameters = args.foldLeft[Map[String, String]](Map()) {
     case (map, par) =>
       if (par.isEmpty) map
       else {
@@ -52,17 +52,17 @@ object DocDuplicityExplain extends App {
         }
       }
   }
-  val keys = parameters.keys.toSet
+  private val keys = parameters.keys.toSet
   if (!Set("index", "schema", "id", "doc").forall(keys.contains)) usage()
 
   if (parameters.size < 4) usage()
 
-  val index = parameters("index")
-  val schema = parameters("schema")
-  val id = parameters("id")
-  val doc = parameters("doc")
-  val schemaEncoding = parameters.getOrElse("schemaEncoding", "utf-8")
-  val expl = explain(index, schema, schemaEncoding, id, doc)
+  private val index = parameters("index")
+  private val schema = parameters("schema")
+  private val id = parameters("id")
+  private val doc = parameters("doc")
+  private val schemaEncoding = parameters.getOrElse("schemaEncoding", "utf-8")
+  private val expl = explain(index, schema, schemaEncoding, id, doc)
 
   println(expl)
 
@@ -280,8 +280,8 @@ object DocDuplicityExplain extends App {
     val query = new TermQuery(new Term("id", idn))
 
     val topDocs = searcher.search(query, 1)
-    //if (topDocs.totalHits.value == 0) None  // for newer Lucene version
-    if (topDocs.totalHits == 0) None
-    else Some(searcher.doc(topDocs.scoreDocs.head.doc))
+    if (topDocs.totalHits.value == 0) None  // for newer Lucene version
+    //if (topDocs.totalHits == 0) None
+    else Some(searcher.storedFields().document(topDocs.scoreDocs.head.doc))
   }
 }

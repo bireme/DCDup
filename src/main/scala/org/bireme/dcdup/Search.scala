@@ -47,15 +47,15 @@ object Search extends App {
         map
       }
   }
-  val keys = parameters.keys.toSet
+  private val keys = parameters.keys.toSet
   if (!Set("index", "expr", "defField").forall(keys.contains)) usage()
 
-  val index: String = parameters("index")
-  val expr: String = parameters("expr")
-  val defField: String = parameters("defField")
-  val count: Int = parameters.getOrElse("count", "9999").toInt
-  val outFields: String = parameters.getOrElse("outFields", "")
-  val fields: Set[String] = outFields.split(" *, *").foldLeft[Set[String]](Set()) {
+  private val index: String = parameters("index")
+  private val expr: String = parameters("expr")
+  private val defField: String = parameters("defField")
+  private val count: Int = parameters.getOrElse("count", "9999").toInt
+  private val outFields: String = parameters.getOrElse("outFields", "")
+  private val fields: Set[String] = outFields.split(" *, *").foldLeft[Set[String]](Set()) {
     case (set, elem) => if (elem.isEmpty) set else set + elem
   }
 
@@ -78,7 +78,7 @@ object Search extends App {
 
     hits.take(count).foreach {
       hit =>
-        val doc: Document = isearcher.doc(hit.doc)
+        val doc: Document = isearcher.storedFields().document(hit.doc)
         println(s"\n+++ Document[${hit.doc}] +++")
         if (fields.isEmpty)
           doc.getFields().asScala.foreach {

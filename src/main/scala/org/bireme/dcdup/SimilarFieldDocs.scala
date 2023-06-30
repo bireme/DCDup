@@ -108,7 +108,7 @@ object SimilarFieldDocs extends App {
     simTree foreach {
       case (sim: Float, set: Set[Int]) => set foreach {
         id: Int =>
-          val doc = reader.document(id)
+          val doc = reader.storedFields().document(id)
           val field: String = {
             val aux: String = doc.get(fldName + "~notnormalized")
             if (aux == null) "" else aux
@@ -223,7 +223,7 @@ object SimilarFieldDocs extends App {
 
     getIds(simTree.iterator, Seq[(Float, Int)](), num) foreach {
       case (sim,id) =>
-        val doc: Document = reader.document(id)
+        val doc: Document = reader.storedFields().document(id)
 
         builder.append(s"\n[similarity: $sim]\n")
         doc.getFields.asScala foreach {
@@ -277,7 +277,7 @@ class DocumentIterator(indexPath: String) extends Iterator[(Int, Document)] {
   private def getNext: Option[(Int,Document)] = {
     if (hasNext0) {
       cur += 1
-      Some((cur - 1, reader.document(cur - 1)))
+      Some((cur - 1, reader.storedFields().document(cur - 1)))
     } else None
   }
 
