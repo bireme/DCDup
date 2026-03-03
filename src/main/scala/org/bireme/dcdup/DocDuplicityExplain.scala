@@ -43,9 +43,9 @@ object DocDuplicityExplain extends App {
         val split = par.split(" *= *", 2)
         if (split.length == 1) {
           println(s"split(0)=${split(0)}")
-          map + ((split(0).substring(2), ""))
+          map + (split(0).substring(2) -> "")
         }
-        else if (split.length == 2) map + ((split(0).substring(1), split(1)))
+        else if (split.length == 2) map + (split(0).substring(1) -> split(1))
         else {
           usage()
           map
@@ -116,7 +116,7 @@ object DocDuplicityExplain extends App {
     val results: Seq[(Int, CheckFieldResult)] = fields.foldLeft(Seq[(Int, CheckFieldResult)]()) {
       case (seq, fld: (Int, Field)) =>
         val check: CheckFieldResult = NGrams.checkField(similarity, ngDistance, fld._2, doc, doc2)
-        seq :+ ((fld._1, check))
+        seq :+ (fld._1, check)
     }
 
     createReport(params, similarity, results, fields, doc, doc2)

@@ -7,10 +7,9 @@
 
 package org.bireme.dcdup
 
-import br.bireme.ngrams.{Field, NGSchema}
+import br.bireme.ngrams.{Field, NGSchema, Parameters}
 
 import java.io.File
-
 import org.apache.lucene.document.Document
 import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.store.FSDirectory
@@ -30,35 +29,35 @@ object TestIndex extends App {
 
   if (args.length < 2) usage()
 
-  val parameters = args.foldLeft[Map[String,String]](Map()) {
+  private val parameters = args.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
-      val split = par.split(" *= *", 2)
-      if (split.length == 1) map + ((split(0).substring(2), ""))
-      else map + ((split(0).substring(1), split(1)))
+      val split: Array[String] = par.split(" *= *", 2)
+      if (split.length == 1) map + (split(0).substring(2) -> "")
+      else map + (split(0).substring(1) ->  split(1))
   }
-  val keys = parameters.keys.toSet
+  private val keys: Set[String] = parameters.keys.toSet
   if (!Set("index", "schema").forall(keys.contains)) usage()
 
-  val index = parameters("index")
-  val schema = parameters("schema")
-  val schemaFileEncod = parameters.getOrElse("schemaFileEncod", "utf-8")
+  private val index: String = parameters("index")
+  private val schema: String = parameters("schema")
+  private val schemaFileEncod: String = parameters.getOrElse("schemaFileEncod", "utf-8")
 
   test(index, schema, schemaFileEncod)
 
   def test(indexDir: String,
            schemaFile: String,
            schemaEncoding: String): Unit = {
-    val schema = new NGSchema("", schemaFile, schemaEncoding)
-    val parameters = schema.getParameters
+    val schema: NGSchema = new NGSchema("", schemaFile, schemaEncoding)
+    val parameters: Parameters = schema.getParameters
     val fields: Map[String, Field] = parameters.getNameFields.asScala.toMap
 
     val directory = FSDirectory.open(new File(indexDir).toPath)
-    val ireader = DirectoryReader.open(directory)
+    val ireader: DirectoryReader = DirectoryReader.open(directory)
 
-    val bad = (0 until ireader.maxDoc) exists {
+    val bad: Boolean = (0 until ireader.maxDoc) exists {
       id =>
-        val doc = ireader.storedFields().document(id)
-        val bad = badDocument(doc, fields)
+        val doc: Document = ireader.storedFields().document(id)
+        val bad: Boolean = badDocument(doc, fields)
 
         if (id % 100000 == 0) println(s"+++ $id")
         if (bad) println(s"BAD DOCUMENT => id: ${doc.get("id")}")
@@ -78,8 +77,8 @@ object TestIndex extends App {
 
   private def checkRequiredField(doc: Document,
                                  field: Field): Boolean = {
-    val reqFieldName = field.requiredField
-    val recFieldContent = doc.get(reqFieldName)
+    val reqFieldName: String = field.requiredField
+    val recFieldContent: String = doc.get(reqFieldName)
 
     (reqFieldName == null) || reqFieldName.isEmpty ||
     ((recFieldContent != null) && recFieldContent.nonEmpty)

@@ -48,36 +48,36 @@ object MySQL2Pipe extends App {
     System.exit(1)
   }
 
-  val seq = args.toSeq.filter(_.nonEmpty)
+  private val seq = args.toSeq.filter(_.nonEmpty)
   if (seq.length < 6) usage()
 
  // Parse parameters
-  val parameters = seq.foldLeft[Map[String,String]](Map()) {
+ private val parameters = seq.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
       val split = par.split(" *= *", 2)
-      if (split.length == 2) map + ((split(0).substring(1), split(1)))
+      if (split.length == 2) map + (split(0).substring(1) -> split(1))
       else {
         usage()
         map
       }
   }
-  val keys = parameters.keys.toSet
+  private val keys = parameters.keys.toSet
   if (!Set("host", "user", "pswd", "dbnm", "sqls", "pipe").forall(keys.contains)) usage()
 
-  val host = parameters("host")
-  val user = parameters("user")
-  val pswd = parameters("pswd")
-  val dbnm = parameters("dbnm")
-  val sqlfs = parameters("sqls").trim.split(" *, *").toSet
-  val pipe = parameters("pipe")
-  val port = parameters.getOrElse("port", "3306")
-  val sqlEncoding = parameters.getOrElse("sqlEncoding", "utf-8")
-  val pipeEncoding = parameters.getOrElse("pipeEncoding", "utf-8")
-  val jsonField = parameters.getOrElse("jsonField", "text,_f").trim.split(" *, *").toSet
-  val repetitiveField = parameters.getOrElse("repetitiveField", "title").trim.split(" *, *").toSet
-  val repetitiveSep = parameters.getOrElse("repetitiveSep", "//@//")
-  val jsonLangField = parameters.getOrElse("jsonLangField", "_i")
-  val idFieldName = parameters.getOrElse("idFieldName", "reference_ptr_id").toLowerCase
+  private val host = parameters("host")
+  private val user = parameters("user")
+  private val pswd = parameters("pswd")
+  private val dbnm = parameters("dbnm")
+  private val sqlfs = parameters("sqls").trim.split(" *, *").toSet
+  private val pipe = parameters("pipe")
+  private val port = parameters.getOrElse("port", "3306")
+  private val sqlEncoding = parameters.getOrElse("sqlEncoding", "utf-8")
+  private val pipeEncoding = parameters.getOrElse("pipeEncoding", "utf-8")
+  private val jsonField = parameters.getOrElse("jsonField", "text,_f").trim.split(" *, *").toSet
+  private val repetitiveField = parameters.getOrElse("repetitiveField", "title").trim.split(" *, *").toSet
+  private val repetitiveSep = parameters.getOrElse("repetitiveSep", "//@//")
+  private val jsonLangField = parameters.getOrElse("jsonLangField", "_i")
+  private val idFieldName = parameters.getOrElse("idFieldName", "reference_ptr_id").toLowerCase
 
   //Class.forName("com.mysql.jdbc.Driver")
   Class.forName("com.mysql.cj.jdbc.Driver")
@@ -165,7 +165,7 @@ object MySQL2Pipe extends App {
     val content = reader.getLines().mkString(" ")
     reader.close()
 
-    val rs = statement.executeQuery(content)
+    val rs: ResultSet = statement.executeQuery(content)
     val meta = rs.getMetaData
     val cols = meta.getColumnCount
     val names = (1 to cols).foldLeft[List[String]](List()) {
@@ -175,7 +175,7 @@ object MySQL2Pipe extends App {
     var tell = 0
 
     while (rs.next()) {
-      parseRecord(rs, names, cols, jsonField,repetitiveFields, repetitiveSep).foreach {
+      parseRecord(rs, names, cols, jsonField, repetitiveFields, repetitiveSep).foreach {
         line =>
           val pipe: String = suffixIdWithLang(line, idFieldPos.map(_-1))
           //println(pipe)
@@ -231,7 +231,7 @@ object MySQL2Pipe extends App {
     * @param repetitiveSep the string used to split a field content into more than
     * one output line (repetitive field separator)
     *
-    * @return a list of otuput piped strings (only one if repetitiveFields is empty)
+    * @return a list of output piped strings (only one if repetitiveFields is empty)
     */
   private def parseRecord(rs: ResultSet,
                           names: List[String],
@@ -243,8 +243,9 @@ object MySQL2Pipe extends App {
       case(lst,col) =>
         val str = Try(rs.getString(col)) getOrElse "????"
 //println(s"[$col]${rs.getString(col)}")
-        val str2 = if (str == null) "" else str.trim()
-        val str3 = if (Tools.isUtf8Encoding(str2)) str2 else "????"
+        val str1 = if (str == null) "" else str.trim()
+        val str2 = if (Tools.isUtf8Encoding(str1)) str1 else "????"
+        val str3 = str2.replaceAll("\n\r|\r\n|\n", " ")
         val str4 = if (str3.startsWith("[{") || str3.startsWith("{"))
                      getElement(str3, jsonField, repetitiveSep)
                    else str3

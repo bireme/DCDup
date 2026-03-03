@@ -54,31 +54,31 @@ object CheckPipeFile extends App {
     )
     System.exit(1)
   }
-  val seq = args.toSeq.filter(_.nonEmpty)
+  private val seq = args.toSeq.filter(_.nonEmpty)
 
   if (seq.length < 4) usage()
  // Parse parameters
-  val parameters = seq.foldLeft[Map[String,String]](Map()) {
+ private val parameters = seq.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
       val split = par.split(" *= *", 2)
-      if (split.length == 2) map + ((split(0).substring(1), split(1)))
+      if (split.length == 2) map + (split(0).substring(1) -> split(1))
       else {
         usage()
         map
       }
   }
-  val keys = parameters.keys.toSet
+  private val keys = parameters.keys.toSet
   if (!Set("pipe", "schema", "good", "bad").forall(keys.contains)) usage()
 
-  val pipe = parameters("pipe")
-  val encoding = parameters.getOrElse("pipeEncoding", "utf-8").trim
-  val encoding2 = if (encoding.isEmpty) "utf-8" else encoding
-  val dedupUrl = parameters.get("dedupUrl")
-  val schema = parameters.get("schema")
-  val schemaEncoding = parameters.getOrElse("schemaEncoding", "utf-8").trim
-  val schemaEncoding2 = if (schemaEncoding.isEmpty) "utf-8" else schemaEncoding
-  val good = parameters("good")
-  val bad = parameters("bad")
+  private val pipe = parameters("pipe")
+  private val encoding = parameters.getOrElse("pipeEncoding", "utf-8").trim
+  private val encoding2 = if (encoding.isEmpty) "utf-8" else encoding
+  private val dedupUrl = parameters.get("dedupUrl")
+  private val schema = parameters.get("schema")
+  private val schemaEncoding = parameters.getOrElse("schemaEncoding", "utf-8").trim
+  private val schemaEncoding2 = if (schemaEncoding.isEmpty) "utf-8" else schemaEncoding
+  private val good = parameters("good")
+  private val bad = parameters("bad")
 
   Try {
     dedupUrl match {

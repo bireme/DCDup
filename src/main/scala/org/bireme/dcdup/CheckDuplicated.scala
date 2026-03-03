@@ -13,7 +13,7 @@ import java.nio.file.{Files, Paths}
 import java.util.Calendar
 
 import br.bireme.ngrams.{NGIndex, NGSchema, NGrams}
-import org.bireme.dcdup.akka.CheckDuplicatedAkka
+import org.bireme.dcdup.pekko.CheckDuplicatedPekko
 
 import scala.collection.mutable
 import scala.io.{BufferedSource, Source}
@@ -41,7 +41,7 @@ object CheckDuplicated {
                       ngSchema: NGSchema,
                       outDupFile: String,
                       outNoDupFile: String,
-                      selfCheck: Boolean = false): Unit = {
+                      selfCheck: Boolean): Unit = {
 
     val time: String = Calendar.getInstance().getTimeInMillis.toString
     val indexPath: String = luceneIndex.getOrElse {
@@ -123,9 +123,9 @@ object CheckDuplicated {
     * @param outNoDupFile the unified no duplicated file
     */
   def takeNoDuplicated(ngSchema: NGSchema,
-                               selfNoDupFile: String,
-                               remoteNoDupFile: String,
-                               outNoDupFile: String): Unit = {
+                       selfNoDupFile: String,
+                       remoteNoDupFile: String,
+                       outNoDupFile: String): Unit = {
     val idPos: Integer = ngSchema.getNamesPos.get("id")
     val dbPos: Integer = ngSchema.getNamesPos.get("database")
     val elemNum: Int = ngSchema.getNamesPos.size
@@ -197,17 +197,18 @@ object CheckDuplicated {
     * @param pipeFileEncoding input piped file character encoding
     * @param outDupFile output piped file with the similar documents
     * @param selfCheck if true indicates that are a duplicated check from input file against itself
+    * @param showOtherFields if true will export all fields of the pipe file to the output report
     */
-  def check(ngIndex: NGIndex,
-            ngSchema: NGSchema,
-            pipeFile: String,
-            pipeFileEncoding: String,
-            outDupFile: String,
-            selfCheck: Boolean): Unit = {
+  private def check(ngIndex: NGIndex,
+                    ngSchema: NGSchema,
+                    pipeFile: String,
+                    pipeFileEncoding: String,
+                    outDupFile: String,
+                    selfCheck: Boolean): Unit = {
     //NGrams.search(ngIndex, ngSchema, pipeFile, pipeFileEncoding, outDupFile, "utf-8")
 
     val numberOfCheckers: Int = Runtime.getRuntime.availableProcessors()
-    CheckDuplicatedAkka.check(ngIndex, ngSchema, pipeFile, pipeFileEncoding, outDupFile,
+    CheckDuplicatedPekko.check(ngIndex, ngSchema, pipeFile, pipeFileEncoding, outDupFile,
       numberOfCheckers = numberOfCheckers, selfCheck)
   }
 
@@ -219,10 +220,10 @@ object CheckDuplicated {
     * @param time time string used as a suffix of the index name
     * @return the index's path
     */
-  def createTmpIndex(pipeFile: String,
-                     pipeFileEncoding: String,
-                     ngSchema: NGSchema,
-                     time: String): String = {
+  private def createTmpIndex(pipeFile: String,
+                             pipeFileEncoding: String,
+                             ngSchema: NGSchema,
+                             time: String): String = {
     val indexPath: String = s"/tmp/DCDup_$time"
     val ngIndex: NGIndex = new NGIndex(indexPath, indexPath, false)
 
@@ -244,15 +245,14 @@ object CheckDuplicated {
     val ids: mutable.Map[String, Set[String]] = mutable.Map[String, Set[String]]()
     val out: BufferedWriter = Files.newBufferedWriter(Paths.get(outDupFileOut), Charset.forName("utf-8"))
     val in: BufferedSource = Source.fromFile(outDupFileIn, "utf-8")
+    val idPos: Integer = 4 * ngSchema.getNamesPos.get("id")
+    val dbPos: Integer = 4 * ngSchema.getNamesPos.get("database")
+    val elemNum: Int = 4 * ngSchema.getNamesPos.size()
 
     in.getLines() foreach {
       line =>
         val linet: String = line.trim
         if (linet.nonEmpty) {
-          val idPos: Integer = 4 * ngSchema.getNamesPos.get("id")
-          val dbPos: Integer = 4 * ngSchema.getNamesPos.get("database")
-          val elemNum: Int = 4 * ngSchema.getNamesPos.size()
-
           val split: Array[String] = linet.split(" *\\| *", elemNum)
           if (split.length == elemNum) {
             val id1x: String = getId(idPos, dbPos,elemNum, linet) //id1db1

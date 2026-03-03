@@ -19,7 +19,7 @@ class LineBatchIterator(iterator: Iterator[String],
                                                             Iterator[String] {
   var current: String = getBatchLines(iterator, first = true)
 
-  override def hasNext: Boolean = !current.isEmpty
+  override def hasNext: Boolean = current.nonEmpty
 
   override def next(): String = {
     val cur = current

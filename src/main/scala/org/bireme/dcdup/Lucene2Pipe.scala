@@ -37,8 +37,8 @@ object Lucene2Pipe extends App {
   val parameters = args.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
       val split = par.split(" *= *", 2)
-      if (split.length == 1) map + ((split(0).substring(2), ""))
-      else map + ((split(0).substring(1), split(1)))
+      if (split.length == 1) map + (split(0).substring(2) -> "")
+      else map + (split(0).substring(1) -> split(1))
   }
   val keys = parameters.keys.toSet
   if (!Set("index", "schema", "pipeFile").forall(keys.contains)) usage()

@@ -43,23 +43,23 @@ object SimilarFieldDocs extends App {
     System.exit(1)
   }
 
-  val parameters = args.foldLeft[Map[String, String]](Map()) {
+  val parameters: Map[String, String] = args.foldLeft[Map[String, String]](Map()) {
     case (map, par) =>
       if (par.isEmpty) map
       else {
         val split = par.split(" *= *", 2)
         if (split.length == 1) {
           //println(s"split(0)=${split(0)}")
-          map + ((split(0).substring(2), ""))
+          map + (split(0).substring(2) -> "")
         }
-        else if (split.length == 2) map + ((split(0).substring(1), split(1)))
+        else if (split.length == 2) map + (split(0).substring(1) -> split(1))
         else {
           usage()
           map
         }
       }
   }
-  val keys = parameters.keys.toSet
+  val keys: Set[String] = parameters.keys.toSet
   if (!Set("fieldText", "index", "fieldName").forall(keys.contains)) usage()
 
   if (parameters.size < 3) usage()
@@ -216,7 +216,7 @@ object SimilarFieldDocs extends App {
                 aux: Seq[(Float, Int)],
                 remain: Int): Seq[(Float,Int)] = {
       if (ids._2.isEmpty || remain == 0) aux
-      else getIds2((ids._1,ids._2.tail), aux :+ ((ids._1, ids._2.head)), remain - 1)
+      else getIds2((ids._1,ids._2.tail), aux :+ (ids._1, ids._2.head), remain - 1)
     }
 
     val builder: StringBuilder =  new StringBuilder()

@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   organization := "br.bireme",
   version := "0.1.0",
-  scalaVersion := /*"2.12.9"*/ "2.13.10" // binarios nao funcionam quando da execucao
+  scalaVersion := /*"2.12.9"*/ "2.13.18" // binarios nao funcionam quando da execucao
 )
 
 lazy val root = (project in file(".")).
@@ -10,24 +10,28 @@ lazy val root = (project in file(".")).
     name := "DCDup"
   )
 
-val commonsLangVersion = "3.12.0" //"3.11"
-val commonsTextVersion = "1.10.0" //"1.8"
-val luceneVersion = "9.7.0" /*"9.5.0" "6.0.0" "8.6.0" */ /*"8.5.1"*/
+val commonsLangVersion = "3.20.0" //"3.12.0" //"3.11"
+val commonsTextVersion = "1.15.0" //"1.8"
+val commonsCsvVersion = "1.14.1"
+val luceneVersion = "10.4.0" /*"9.7.0"*/
 //val jacksonVersion = /*"2.9.9.3"*/ "2.9.9"
 val httpClientVersion = "4.5.14" //"4.5.12"
 val scalajHttpVersion = "2.4.2" //"2.4.1"
 val mySQLVersion = "8.0.33" //"8.0.21"
-val logBackVersion = "1.4.7" //"1.2.3"
-val circeVersion = "0.14.5" //"0.13.0"
-val scalaTestVersion = "3.2.15" //"3.2.0"
+val logBackVersion = "1.5.32" //"1.4.7" //"1.2.3"
+val circeVersion = "0.14.15" //"0.13.0"
+val scalaTestVersion = "3.2.19" //"3.2.0"
 val akkaVersion = "2.8.0" //"2.7.0" //"2.6.8"
+val pekkoVersion = "1.4.0"
 val xerces2Version = "2.12.2" //"2.12.0"
 val stringDistanceVersion = "1.2.7" //"1.2.3"
-val googlePatchVersion = "20121119" //"895a9512bb"
+val googlePatchVersion = "20121119-1" //"895a9512bb"
 
 libraryDependencies ++= Seq(
   "org.apache.commons" % "commons-lang3" % commonsLangVersion,
   "org.apache.commons" % "commons-text" % commonsTextVersion,
+  // https://mvnrepository.com/artifact/org.apache.commons/commons-csv
+  "org.apache.commons" % "commons-csv" % commonsCsvVersion,
   //"org.apache.lucene" % "lucene-analyzers-common" % luceneVersion,
   "org.apache.lucene" % "lucene-analysis-common" % luceneVersion,
   "org.apache.lucene" % "lucene-core" % luceneVersion,
@@ -43,7 +47,8 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-parser" % circeVersion,
   "org.scalactic" %% "scalactic" % scalaTestVersion,
   "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-  "com.typesafe.akka" %% "akka-actor" % akkaVersion,
+  //"com.typesafe.pekko" %% "pekko-actor" % akkaVersion,
+  "org.apache.pekko" %% "pekko-actor" % pekkoVersion,
   "xerces" % "xercesImpl" % xerces2Version,
   "com.github.vickumar1981" %% "stringdistance" % stringDistanceVersion,
   "org.webjars" % "google-diff-match-patch" % googlePatchVersion

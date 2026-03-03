@@ -6,7 +6,17 @@ SELECT 'LILACS_Sas' AS dbase,
        c.`volume_serial`,
        c.`issue_number`,
        IFNULL(b.`individual_author`,b.`corporate_author`) AS author,
-       b.`pages`
+       b.`pages`,
+       a.`cooperative_center_code`,
+       a.`literature_type`,
+       a.`treatment_level`,
+       a.`status`,
+       CASE
+           WHEN a.`electronic_address` IS NULL THEN ''
+           WHEN a.`electronic_address` = '[]' THEN ''
+           ELSE a.`electronic_address`
+       END AS electronic_address,
+       CONCAT('https://fi-admin.bvsalud.org/bibliographic/edit-analytic/', b.`reference_ptr_id`) AS link_fiadmin
 FROM `biblioref_referenceanalytic` AS b
 INNER JOIN `biblioref_referencesource` AS c
 ON b.`source_id` = c.`reference_ptr_id`

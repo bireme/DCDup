@@ -37,11 +37,11 @@ object Search extends App {
 
   if (args.length < 3) usage()
 
-  val parameters: Map[String, String] = args.foldLeft[Map[String,String]](Map()) {
+  private val parameters: Map[String, String] = args.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
       val split = par.split(" *= *", 2)
       if (split.length == 2)
-        map + ((split(0).substring(1), split(1)))
+        map + (split(0).substring(1) -> split(1))
       else {
         usage()
         map

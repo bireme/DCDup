@@ -36,26 +36,26 @@ object DoubleCheckDuplicated extends App {
 
   if (args.length < 7) usage()
 
-  val parameters = args.foldLeft[Map[String,String]](Map()) {
+  private val parameters = args.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
       val split: Array[String] = par.split(" *= *", 2)
-      if (split.length == 1) map + ((split(0).substring(2), ""))
-      else map + ((split(0).substring(1), split(1)))
+      if (split.length == 1) map + (split(0).substring(2) -> "")
+      else map + (split(0).substring(1) -> split(1))
   }
-  val keys = parameters.keys.toSet
+  private val keys = parameters.keys.toSet
   if (!Set("pipe", "index", "schema", "outDupFile1", "outDupFile2", "outNoDupFile1", "outNoDupFile2")
     .forall(keys.contains)) usage()
 
-  val pipe: String = parameters("pipe")
-  val index: String = parameters("index")
-  val schema: String = parameters("schema")
-  val outDupFile1: String = parameters("outDupFile1")
-  val outDupFile2: String = parameters("outDupFile2")
-  val outNoDupFile1: String = parameters("outNoDupFile1")
-  val outNoDupFile2: String = parameters("outNoDupFile2")
-  val pipeEncoding: String = parameters.getOrElse("pipeEncoding", "utf-8")
-  val schemaEncoding: String = parameters.getOrElse("schemaEncoding", "utf-8")
-  val begin: Long = Calendar.getInstance.getTimeInMillis
+  private val pipe: String = parameters("pipe")
+  private val index: String = parameters("index")
+  private val schema: String = parameters("schema")
+  private val outDupFile1: String = parameters("outDupFile1")
+  private val outDupFile2: String = parameters("outDupFile2")
+  private val outNoDupFile1: String = parameters("outNoDupFile1")
+  private val outNoDupFile2: String = parameters("outNoDupFile2")
+  private val pipeEncoding: String = parameters.getOrElse("pipeEncoding", "utf-8")
+  private val schemaEncoding: String = parameters.getOrElse("schemaEncoding", "utf-8")
+  private val begin: Long = Calendar.getInstance.getTimeInMillis
 
   doubleCheck(pipe, pipeEncoding, index, schema, schemaEncoding,
               outDupFile1, outDupFile2, outNoDupFile1, outNoDupFile2)
@@ -101,7 +101,8 @@ object DoubleCheckDuplicated extends App {
       selfCheck = true)
 
     // Check using given Lucene indexPath
-    CheckDuplicated.checkDuplicated(goodFileName, pipeEncoding , Some(luceneIndex), ngSchema, outDupFile2, outNoDupFile1)
+    CheckDuplicated.checkDuplicated(goodFileName, pipeEncoding , Some(luceneIndex), ngSchema, outDupFile2,
+      outNoDupFile1, selfCheck = false)
 
     // Take duplicate no duplicated documents between (pipe file and itself) and (pipe file and Dedup index)
     CheckDuplicated.takeNoDuplicated(ngSchema, outNoDupFile1 + "_self" , outNoDupFile1, outNoDupFile2)

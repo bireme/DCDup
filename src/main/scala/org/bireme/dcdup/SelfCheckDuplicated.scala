@@ -24,7 +24,8 @@ object SelfCheckDuplicated extends App {
       "\n\t-outDupFile=<outDupFile> - duplicated records found in pipe file" +
       "\n\t-outNoDupFile=<outNoDupFile> - no duplicated records between pipe file and itself" +
       "\n\t[-pipeEncoding=<pipeFileEncoding>] - pipe file character encoding. Default is utf-8" +
-      "\n\t[-schemaEncoding=<schemaFileEncoding>] - DeDup schema file character encoding. Default is utf-8")
+      "\n\t[-schemaEncoding=<schemaFileEncoding>] - DeDup schema file character encoding. Default is utf-8" +
+      "\n\t[--showOtherFields] - if present it will export all fields from pipe file to the output report")
     System.exit(1)
   }
 
@@ -33,8 +34,8 @@ object SelfCheckDuplicated extends App {
   val parameters = args.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
       val split = par.split(" *= *", 2)
-      if (split.length == 1) map + ((split(0).substring(2), ""))
-      else map + ((split(0).substring(1), split(1)))
+      if (split.length == 1) map + (split(0).substring(2) -> "")
+      else map + (split(0).substring(1) -> split(1))
   }
   val keys = parameters.keys.toSet
   if (!Set("pipe", "schema", "outDupFile", "outNoDupFile").forall(keys.contains)) usage()

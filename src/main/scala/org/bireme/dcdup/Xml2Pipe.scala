@@ -3,11 +3,9 @@ package org.bireme.dcdup
 import java.io.{BufferedWriter, File, FileInputStream, IOException}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths, StandardOpenOption}
-
 import javax.xml.stream.{XMLInputFactory, XMLStreamConstants, XMLStreamReader}
-
 import scala.collection.mutable
-import scala.io.Source
+import scala.io.{BufferedSource, Source}
 import scala.util.{Failure, Success, Try}
 
 /** Export xml document fields to a piped file according to a conversion file.
@@ -33,26 +31,26 @@ object Xml2Pipe extends App {
   if (args.length < 4) usage()
 
   // Parse parameters
-  val parameters: Map[String, String] = args.foldLeft[Map[String,String]](Map()) {
+  private val parameters: Map[String, String] = args.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
-      val split = par.split(" *= *", 2)
-      if (split.length == 2) map + ((split(0).substring(1), split(1)))
+      val split: Array[String] = par.split(" *= *", 2)
+      if (split.length == 2) map + (split(0).substring(1) -> split(1))
       else {
         usage()
         map
       }
   }
-  val keys = parameters.keys.toSet
+  private val keys: Set[String] = parameters.keys.toSet
   if (!Set("dir", "inPattern", "outDir", "conv").forall(keys.contains)) usage()
 
-  val repSeparator: String = "//@//"  // Separator string of repetitive field
-  val dir: String = parameters("dir")
-  val inPattern: String = parameters("inPattern")
-  val outDir: String = parameters("outDir")
-  val conv: String = parameters("conv")
-  val exPattern: Option[String] = parameters.get("exPattern")
+  private val repSeparator: String = "//@//"  // Separator string of repetitive field
+  private val dir: String = parameters("dir")
+  private val inPattern: String = parameters("inPattern")
+  private val outDir: String = parameters("outDir")
+  private val conv: String = parameters("conv")
+  private val exPattern: Option[String] = parameters.get("exPattern")
 
-  val convMap: Map[String, (Int, Map[String, Int])] = parseConvFile1(conv).foldLeft(Map[String, (Int, Map[String, Int])]()) {
+  private val convMap: Map[String, (Int, Map[String, Int])] = parseConvFile1(conv).foldLeft(Map[String, (Int, Map[String, Int])]()) {
     case (map, (xmlTypeElem, filePath)) =>
       val conv2: Map[String, Int] = parseConvFile2(filePath)
       val maxPos: Int = conv2.values.max
@@ -67,11 +65,11 @@ object Xml2Pipe extends App {
     * @return (xml field 'type' content -> associated conversion file (schema like)
     */
   private def parseConvFile1(convFile: String): Map[String, String] = {
-    val src = Source.fromFile(convFile, "utf-8")
+    val src: BufferedSource = Source.fromFile(convFile, "utf-8")
 
     val map: Map[String, String] = src.getLines().foldLeft(Map[String, String]()) {
       case (map1, line) =>
-        val split = line.trim.split(" *\\| *", 2)
+        val split: Array[String] = line.trim.split(" *\\| *", 2)
         if (split.length > 1) map1 + (split(0) -> split(1))
         else map1
     }
@@ -86,11 +84,11 @@ object Xml2Pipe extends App {
     * @return xml tag -> pipe position
     */
   private def parseConvFile2(convFile: String): Map[String, Int] = {
-    val src = Source.fromFile(convFile, "utf-8")
+    val src: BufferedSource = Source.fromFile(convFile, "utf-8")
 
     val map: Map[String, Int] = src.getLines().foldLeft(Map[String, Int]()) {
       case (map1, line) =>
-        val split = line.trim.split(" *\\| *", 2)
+        val split: Array[String] = line.trim.split(" *\\| *", 2)
         if (split.length > 1) map1 + (split(0) -> split(1).toInt)
         else map1
     }
@@ -106,7 +104,7 @@ object Xml2Pipe extends App {
               exPattern: Option[String]): Unit = {
     val inFileFilter: String = inPattern.trim
     val exFileFilter: String = exPattern.getOrElse("").trim
-    val dirFile = new File(dir)
+    val dirFile: File = new File(dir)
     if (!dirFile.isDirectory) throw new IOException(s"directory expected [$dir]")
 
     val writers: mutable.Map[String, BufferedWriter] = mutable.Map[String, BufferedWriter]()

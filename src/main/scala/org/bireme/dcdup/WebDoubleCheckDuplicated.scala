@@ -43,27 +43,27 @@ object WebDoubleCheckDuplicated extends App {
 
   if (args.length < 8) usage()
 
-  val parameters = args.foldLeft[Map[String,String]](Map()) {
+  private val parameters: Map[String, String] = args.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
-      val split = par.split(" *= *", 2)
-      if (split.length == 1) map + ((split(0).substring(2), ""))
-      else map + ((split(0).substring(1), split(1)))
+      val split: Array[String] = par.split(" *= *", 2)
+      if (split.length == 1) map + (split(0).substring(2) -> "")
+      else map + (split(0).substring(1) -> split(1))
   }
-  val keys = parameters.keys.toSet
+  private val keys: Set[String] = parameters.keys.toSet
   if (!Set("pipe", "dedupUrl", "index", "schema", "outDupFile1", "outDupFile2", "outNoDupFile1", "outNoDupFile2")
     .forall(keys.contains)) usage()
 
-  val pipe = parameters("pipe")
-  val dedupUrl = parameters("dedupUrl")
-  val index = parameters("index")
-  val schema = parameters("schema")
-  val outDupFile1 = parameters("outDupFile1")
-  val outDupFile2 = parameters("outDupFile2")
-  val outNoDupFile1 = parameters("outNoDupFile1")
-  val outNoDupFile2 = parameters("outNoDupFile2")
-  val pipeEncoding = parameters.getOrElse("pipeEncoding", "utf-8")
+  private val pipe: String = parameters("pipe")
+  private val dedupUrl: String = parameters("dedupUrl")
+  private val index: String = parameters("index")
+  private val schema: String = parameters("schema")
+  private val outDupFile1: String = parameters("outDupFile1")
+  private val outDupFile2: String = parameters("outDupFile2")
+  private val outNoDupFile1: String = parameters("outNoDupFile1")
+  private val outNoDupFile2: String = parameters("outNoDupFile2")
+  private val pipeEncoding: String = parameters.getOrElse("pipeEncoding", "utf-8")
 
-  val dup = new WebDoubleCheckDuplicated()
+  private val dup: WebDoubleCheckDuplicated = new WebDoubleCheckDuplicated()
   dup.doubleCheck(pipe, pipeEncoding, dedupUrl, index, schema,
                   outDupFile1, outDupFile2, outNoDupFile1, outNoDupFile2)
 }
@@ -99,7 +99,8 @@ class WebDoubleCheckDuplicated {
 
     // Self check
     println("\n***Self check")
-    CheckDuplicated.checkDuplicated(goodFile, "utf-8" , None, ngSchema, outDupFile1, outNoDupFile1 + "_self")
+    CheckDuplicated.checkDuplicated(goodFile, "utf-8" , None, ngSchema, outDupFile1,
+      outNoDupFile1 + "_self", selfCheck = false)
 
     // Check using DeDup service
     println("\n***Remote check")
@@ -158,7 +159,7 @@ class WebDoubleCheckDuplicated {
       batch =>
         println(s"<<< $cur")
         val remote = rcheck(deDupBaseUrl, indexName, schemaName, batch)
-        if (!remote.isEmpty) {
+        if (remote.nonEmpty) {
           if (cur != 0) dest.write("\n")
           dest.write(remote)
         }
@@ -214,7 +215,7 @@ class WebDoubleCheckDuplicated {
       val content = EntityUtils.toString(response.getEntity, "utf-8").trim()
       if (content.startsWith("ERROR:")) {
 //println(s"content=[$content] lines=[$lines]")
-        val split = lines.split(" *\n *").map(_.trim).filter(!_.isEmpty)
+        val split = lines.split(" *\n *").map(_.trim).filter(_.nonEmpty)
         split.length match {
           case 0 => ""
           case 1 =>

@@ -33,26 +33,26 @@ object Duplicated2Lucene extends App {
 
   if (args.length < 4) usage()
 
-  val parameters = args.foldLeft[Map[String,String]](Map()) {
+  private val parameters = args.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
       val split = par.split(" *= *", 2)
-      if (split.length == 1) map + ((split(0).substring(2), ""))
-      else map + ((split(0).substring(1), split(1)))
+      if (split.length == 1) map + (split(0).substring(2) -> "")
+      else map + (split(0).substring(1) -> split(1))
   }
-  val keys = parameters.keys.toSet
+  private val keys = parameters.keys.toSet
   if (!Set("pipeFile", "dupFile", "indexPath", "schema").forall(keys.contains)) usage()
 
-  val pipeFile = parameters("pipeFile")
-  val dupFile = parameters("dupFile")
-  val indexPath = parameters("indexPath")
-  val schemaFile = parameters("schema")
-  val pipeFileEncoding = parameters.getOrElse("pipeFileEncoding", "utf-8")
-  val dupFileEncoding = parameters.getOrElse("dupFileEncoding", "utf-8")
-  val schemaFileEncoding = parameters.getOrElse("schemaFileEncoding", "utf-8")
+  private val pipeFile = parameters("pipeFile")
+  private val dupFile = parameters("dupFile")
+  private val indexPath = parameters("indexPath")
+  private val schemaFile = parameters("schema")
+  private val pipeFileEncoding = parameters.getOrElse("pipeFileEncoding", "utf-8")
+  private val dupFileEncoding = parameters.getOrElse("dupFileEncoding", "utf-8")
+  private val schemaFileEncoding = parameters.getOrElse("schemaFileEncoding", "utf-8")
 
-  val denied = getDeniedDocIds(dupFile, dupFileEncoding)
-  val noDupPipeFile = genNoDupFile(pipeFile, pipeFileEncoding, denied)
-  val p2l = new Pipe2Lucene()
+  private val denied = getDeniedDocIds(dupFile, dupFileEncoding)
+  private val noDupPipeFile = genNoDupFile(pipeFile, pipeFileEncoding, denied)
+  private val p2l = new Pipe2Lucene()
   p2l.convertToLucene(indexPath, schemaFile, schemaFileEncoding, noDupPipeFile,
                  "utf-8", append = false)
 
@@ -78,7 +78,7 @@ object Duplicated2Lucene extends App {
     val set = dsrc.getLines().foldLeft[Set[Int]](Set()) {
       case (set1,line) =>
         val tline = line.trim()
-        if (!tline.isEmpty) {
+        if (tline.nonEmpty) {
           val split = tline.split("\\|")
           if (split.size >= 4) {
             val v1 = split(2).toInt
@@ -115,7 +115,7 @@ object Duplicated2Lucene extends App {
     src.getLines().foreach {
       line =>
         val tline = line.trim()
-        if (!tline.isEmpty) {
+        if (tline.nonEmpty) {
           val split = tline.split("\\|", 3)
           if (split.size >= 3) {
             val v1 = split(1).toInt

@@ -38,32 +38,32 @@ object SimilarPipes extends App {
     )
     System.exit(1)
   }
-  val seq = args.toSeq.filter(_.nonEmpty)
+  private val seq: Seq[String] = args.toSeq.filter(_.nonEmpty)
 
   if (seq.length < 4) usage()
 
   // Parse parameters
-  val parameters = seq.foldLeft[Map[String,String]](Map()) {
+  private val parameters: Map[String, String] = seq.foldLeft[Map[String,String]](Map()) {
     case (map,par) =>
       val split = par.split(" *= *", 2)
-      if (split.length == 2) map + ((split(0).substring(1), split(1)))
+      if (split.length == 2) map + (split(0).substring(1) -> split(1))
       else {
         usage()
         map
       }
   }
-  val keys = parameters.keys.toSet
+  private val keys: Set[String] = parameters.keys.toSet
   if (!Set("pipe", "schema", "good", "bad").forall(keys.contains)) usage()
 
-  val pipe = parameters("pipe")
-  val pipeEncoding = parameters.getOrElse("pipeEncoding", "utf-8").trim
-  val pipeEncoding2 = if (pipeEncoding.isEmpty) "utf-8" else pipeEncoding
-  val dedupUrl = parameters.get("dedupUrl")
-  val schema = parameters.get("schema")
-  val schemaEncoding = parameters.getOrElse("schemaEncoding", "utf-8").trim
-  val schemaEncoding2 = if (schemaEncoding.isEmpty) "utf-8" else schemaEncoding
-  val good = parameters("good")
-  val bad = parameters("bad")
+  private val pipe: String = parameters("pipe")
+  private val pipeEncoding: String = parameters.getOrElse("pipeEncoding", "utf-8").trim
+  private val pipeEncoding2: String = if (pipeEncoding.isEmpty) "utf-8" else pipeEncoding
+  private val dedupUrl: Option[String] = parameters.get("dedupUrl")
+  private val schema: Option[String] = parameters.get("schema")
+  private val schemaEncoding: String = parameters.getOrElse("schemaEncoding", "utf-8").trim
+  private val schemaEncoding2: String = if (schemaEncoding.isEmpty) "utf-8" else schemaEncoding
+  private val good: String = parameters("good")
+  private val bad: String = parameters("bad")
 
   Try {
     dedupUrl match {

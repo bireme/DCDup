@@ -12,18 +12,17 @@ import java.nio.charset.Charset
 import java.text.Normalizer
 import java.text.Normalizer.Form
 import java.util
-
-import org.apache.http.client.methods.HttpGet
-import org.apache.http.impl.client.HttpClientBuilder
+import org.apache.http.client.methods.{CloseableHttpResponse, HttpGet}
+import org.apache.http.impl.client.{CloseableHttpClient, HttpClientBuilder}
 import org.apache.http.util.EntityUtils
 
 object Tools {
   def isUtf8Encoding(text: String): Boolean = {
     require(text != null)
 
-    val utf8 = Charset.availableCharsets().get("UTF-8")
-    val b1 = text.getBytes(utf8)
-    val b2 = new String(b1, utf8).getBytes(utf8)
+    val utf8: Charset = Charset.availableCharsets().get("UTF-8")
+    val b1: Array[Byte] = text.getBytes(utf8)
+    val b2: Array[Byte] = new String(b1, utf8).getBytes(utf8)
 
     util.Arrays.equals(b1, b2)
   }
@@ -51,17 +50,17 @@ object Tools {
     */
   def loadSchema(baseUrl: String,
                  schemaName: String): String = {
-    val baseUrlTrim = baseUrl.trim
-    val burl = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
-    val schemaUrl = burl + "schema/xml/" +  schemaName
-    val httpClient = HttpClientBuilder.create().build()
-    val get = new HttpGet(schemaUrl)
+    val baseUrlTrim: String = baseUrl.trim
+    val burl: String = if (baseUrlTrim.endsWith("/")) baseUrlTrim else baseUrlTrim + "/"
+    val schemaUrl: String = burl + "schema/xml/" +  schemaName
+    val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
+    val get: HttpGet = new HttpGet(schemaUrl)
 
     get.setHeader("Content-type", "text/plain;charset=utf-8")
-    val response = httpClient.execute(get)
-    val statusCode = response.getStatusLine.getStatusCode
-    val ret = if (statusCode == 200) {
-      val content = EntityUtils.toString(response.getEntity)
+    val response: CloseableHttpResponse = httpClient.execute(get)
+    val statusCode: Int = response.getStatusLine.getStatusCode
+    val ret: String = if (statusCode == 200) {
+      val content: String = EntityUtils.toString(response.getEntity)
       if (content.startsWith("ERROR:")) throw new IOException(content)
       content
     } else throw new IOException(s"url=$schemaUrl statusCode=$statusCode")
