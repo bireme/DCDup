@@ -62,7 +62,24 @@ trapExit := false
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Ywarn-unused")
 //addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % hairyfotrVersion)
 
-assembly / assemblyMergeStrategy := {
+/* assembly / assemblyMergeStrategy := {
   case PathList("META-INF", _*) => MergeStrategy.discard
   case _                        => MergeStrategy.first
+} */
+
+assembly / assemblyMergeStrategy := {
+  // JPMS
+  case "module-info.class" => MergeStrategy.discard
+  // multi-release jars
+  case PathList("META-INF", "versions", _ @ _*) => MergeStrategy.discard
+
+  // serviços SPI
+  case PathList("META-INF", "services", _ @ _*) => MergeStrategy.concat
+
+  // resto do META-INF
+  case PathList("META-INF", _ @ _*) => MergeStrategy.discard
+
+  // fallback
+  case x => (assembly / assemblyMergeStrategy).value(x)
 }
+
