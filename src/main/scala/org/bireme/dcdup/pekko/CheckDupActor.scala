@@ -48,7 +48,7 @@ class CheckDupActor(ngIndex: NGIndex,
         } else {
           //println(s"size=${id_id.size} $self.path.name] line[$doc]")
           //NGrams.result2PipeReport(parameters, results).asScala.toSet
-          result2PipeReport(parameters, results, ttext)
+          result2PipeReport(results)
         }
       } match {
         case Success(resSet) =>
@@ -65,9 +65,7 @@ class CheckDupActor(ngIndex: NGIndex,
       searcher.getIndexReader.close()
   }
 
-  private def result2PipeReport(parameters: Parameters,
-                                results: util.List[NGrams.Result],
-                                inLine: String): Set[String] = {
+  private def result2PipeReport(results: util.List[NGrams.Result]): Set[String] = {
     val ret: mutable.TreeSet[String] = mutable.TreeSet[String]()
 
     results.asScala.foreach {

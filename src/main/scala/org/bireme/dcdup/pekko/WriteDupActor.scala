@@ -20,7 +20,7 @@ class WriteDupActor(goodUrlFile: File,
     StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
 
   private var first = true
-  val x = sfields.values.toSeq
+
   sfields.values.map(_.name).foreach {
     name =>
       if (first) first = false else dupWriter.append("|")
@@ -31,14 +31,14 @@ class WriteDupActor(goodUrlFile: File,
   //  "index_source\n\n")
 
   override def receive: Receive = {
-    case lines: Set[String] =>
+    case lines: Set[_] =>
       lines.foreach {
-        line: String =>
-          if (line.nonEmpty) {
-            dupWriter.write(line)
-            dupWriter.newLine()
-          }
+        case line: String if line.nonEmpty =>
+          dupWriter.write(line)
+          dupWriter.newLine()
+        case _ => // ignora
       }
+
     case Finish =>
       dupWriter.close()
       context.actorSelection("../readDup") ! Finish
