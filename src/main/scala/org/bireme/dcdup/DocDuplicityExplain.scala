@@ -11,7 +11,7 @@ import br.bireme.ngrams._
 import org.apache.commons.text.StringEscapeUtils
 import org.apache.lucene.document.Document
 import org.apache.lucene.index.Term
-import org.apache.lucene.search.{IndexSearcher, TermQuery}
+import org.apache.lucene.search.{IndexSearcher, TermQuery, TopDocs}
 import org.apache.lucene.search.spell.NGramDistance
 
 import scala.collection.mutable
@@ -75,11 +75,11 @@ object DocDuplicityExplain extends App {
     * @param doc input piped document used to compare for duplicity
     * @return the report saying if the documents are duplicated or not and why
     */
-  def explain(index: String,
-              conf: String,
-              encod: String,
-              id: String,
-              doc: String): String = {
+  private def explain(index: String,
+                      conf: String,
+                      encod: String,
+                      id: String,
+                      doc: String): String = {
     val ngIndex: NGIndex = new NGIndex("index", index, true)
     val schema: NGSchema = new NGSchema("schema", conf, encod)
     val searcher: IndexSearcher = ngIndex.getIndexSearcher
@@ -279,7 +279,7 @@ object DocDuplicityExplain extends App {
       br.bireme.ngrams.Tools.normalize(docId, NGrams.OCC_SEPARATOR), NGrams.MAX_NG_TEXT_SIZE).trim
     val query = new TermQuery(new Term("id", idn))
 
-    val topDocs = searcher.search(query, 1)
+    val topDocs: TopDocs = searcher.search(query, 1)
     if (topDocs.totalHits.value == 0) None  // for newer Lucene version
     //if (topDocs.totalHits == 0) None
     else Some(searcher.storedFields().document(topDocs.scoreDocs.head.doc))
