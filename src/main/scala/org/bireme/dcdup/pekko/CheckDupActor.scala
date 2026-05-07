@@ -73,7 +73,7 @@ class CheckDupActor(ngIndex: NGIndex,
         val builder: StringBuilder = new StringBuilder()
         var first: Boolean = true
 
-        result.resltList.asScala.foreach {
+        result.resultList.asScala.foreach {
           fcr =>
             if (first) first = false
             else builder.append("|")

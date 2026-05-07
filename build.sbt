@@ -15,6 +15,7 @@ val commonsTextVersion = "1.15.0" //"1.8"
 val commonsCsvVersion = "1.14.1"
 val luceneVersion = "10.4.0" /*"9.7.0"*/
 //val jacksonVersion = /*"2.9.9.3"*/ "2.9.9"
+val jacksonAnnotationsVersion = "2.21"
 val httpClientVersion = "4.5.14" //"4.5.12"
 val scalajHttpVersion = "2.4.2" //"2.4.1"
 val mySQLVersion = "8.0.33" //"8.0.21"
@@ -39,6 +40,9 @@ libraryDependencies ++= Seq(
   "org.apache.lucene" % "lucene-suggest" % luceneVersion,
   "org.apache.lucene" % "lucene-backward-codecs" % luceneVersion,
   "org.apache.lucene" % "lucene-codecs" % luceneVersion % Test,
+  // NGrams ships shaded Jackson 3 classes that still reference these Jackson 2.21
+  // compatibility annotations at runtime.
+  "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonAnnotationsVersion,
   "org.apache.httpcomponents" % "httpclient" % httpClientVersion,
   "org.scalaj" %% "scalaj-http" % scalajHttpVersion,
   "mysql" % "mysql-connector-java" % mySQLVersion,
@@ -68,6 +72,9 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Ywarn-unused")
 } */
 
 assembly / assemblyMergeStrategy := {
+  // Prefer the explicitly managed Jackson annotations over the stale copy
+  // bundled inside NGrams-assembly.
+  case PathList("com", "fasterxml", "jackson", "annotation", _ @ _*) => MergeStrategy.first
   // JPMS
   case "module-info.class" => MergeStrategy.discard
   // multi-release jars
@@ -82,4 +89,3 @@ assembly / assemblyMergeStrategy := {
   // fallback
   case x => (assembly / assemblyMergeStrategy).value(x)
 }
-
