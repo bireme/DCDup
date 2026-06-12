@@ -277,7 +277,7 @@ object CheckDuplicated {
 
   /**
   * Given the input piped file and the duplicated file, create the no duplicated file by removing from the first, the
-    * lines that are not identified in the second one.
+    * lines that are identified in the second one.
     * @param pipeFile the input piped file with documents that will be checked
     * @param pipeFileEncoding the input piped file's character encoding
     * @param ngSchema DeDup data schema name. See http://dedup.bireme.org/services/schemas
